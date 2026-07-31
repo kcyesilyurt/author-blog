@@ -11,7 +11,7 @@ export default function ChapterNav({ bookSlug, chapters, currentChapterId }: { b
     <div className="border-t border-neutral-800 pt-8 mt-12 flex flex-col sm:flex-row items-stretch justify-between gap-4">
       {prev ? (
         <Link href={`/books/${bookSlug}/${prev.slug}`} className="bg-neutral-900 hover:bg-neutral-800 rounded-lg px-4 py-5 sm:px-5 sm:py-4 transition-colors flex-1 group border border-neutral-800 hover:border-pink-400/30">
-          <div className="text-xs text-neutral-500 uppercase tracking-wider">← Previous</div>
+          <div className="text-xs text-neutral-500 uppercase tracking-wider">← Önceki</div>
           <div className="text-sm font-medium text-neutral-200 group-hover:text-pink-300 transition-colors mt-1">{prev.title}</div>
         </Link>
       ) : (
@@ -20,7 +20,7 @@ export default function ChapterNav({ bookSlug, chapters, currentChapterId }: { b
       
       {next ? (
         <Link href={`/books/${bookSlug}/${next.slug}`} className="bg-neutral-900 hover:bg-neutral-800 rounded-lg px-4 py-5 sm:px-5 sm:py-4 transition-colors flex-1 group border border-neutral-800 hover:border-pink-400/30 text-right">
-          <div className="text-xs text-neutral-500 uppercase tracking-wider">Next →</div>
+          <div className="text-xs text-neutral-500 uppercase tracking-wider">Sonraki →</div>
           <div className="text-sm font-medium text-neutral-200 group-hover:text-pink-300 transition-colors mt-1">{next.title}</div>
         </Link>
       ) : (

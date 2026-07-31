@@ -13,7 +13,7 @@ export default function BookCard({ book }: { book: Book }) {
         <div className="absolute bottom-0 inset-x-0 h-1/3 bg-gradient-to-t from-neutral-900 to-transparent"></div>
         {book.type === 'post' && (
           <span className="absolute top-3 right-3 bg-pink-400 text-black text-xs font-medium px-2 py-0.5 rounded-full">
-            Blog Post
+            Blog Yazısı
           </span>
         )}
       </div>

@@ -1,117 +1,95 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createClient();
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Övgü Deveci Safi';
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, [supabase.auth]);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
-
-  const navLinks = [
-    { name: 'Books', href: '/books' },
-    { name: 'About', href: '/about' },
-  ];
-
-  if (user) {
-    navLinks.push({ name: 'Profile', href: '/profile' });
-  } else {
-    navLinks.push({ name: 'Sign In', href: '/auth/signin' });
-  }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.href = '/';
+  };
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur flex-none transition-colors duration-500 lg:z-50 lg:border-b lg:border-neutral-800/50 bg-black/80">
-      <div className="max-w-6xl mx-auto">
-        <div className="py-4 px-4 sm:px-6 lg:px-8 border-b border-neutral-800 lg:border-none flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 z-50">
-            <span className="font-serif text-xl font-bold tracking-tight text-white hover:text-pink-300 transition-colors">
-              Author Name
-            </span>
+    <nav className="sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-neutral-800">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="text-xl font-bold text-pink-400 hover:text-pink-300 transition">
+          {siteName}
+        </Link>
+
+        <div className="hidden md:flex items-center gap-6">
+          <Link href="/" className="text-neutral-300 hover:text-white transition text-sm">
+            Eserler
           </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                className={`text-sm font-medium transition-colors ${
-                  pathname === link.href
-                    ? 'text-pink-400'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                {link.name}
+          {user ? (
+            <>
+              <span className="text-neutral-400 text-sm">{user.email}</span>
+              <button onClick={handleLogout} className="text-neutral-400 hover:text-white text-sm transition">
+                Çıkış Yap
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login" className="text-neutral-300 hover:text-white text-sm transition">
+                Giriş Yap
               </Link>
-            ))}
-          </nav>
-
-          {/* Mobile Navigation Toggle */}
-          <button
-            type="button"
-            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-pink-400 z-50 relative transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-expanded={isOpen}
-          >
-            <span className="sr-only">Open main menu</span>
-            {isOpen ? (
-              <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              </svg>
-            )}
-          </button>
+              <Link href="/auth/signup" className="bg-pink-400 text-black px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-pink-300 transition">
+                Kayıt Ol
+              </Link>
+            </>
+          )}
         </div>
+
+        <button
+          aria-label="Menüyü Aç/Kapat"
+          className="md:hidden z-50 flex flex-col justify-center items-center w-10 h-10 space-y-1.5 focus:outline-none"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          <span className={`block w-6 h-0.5 bg-neutral-300 transition-transform duration-300 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+          <span className={`block w-6 h-0.5 bg-neutral-300 transition-opacity duration-300 ${menuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
+          <span className={`block w-6 h-0.5 bg-neutral-300 transition-transform duration-300 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+        </button>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      {isOpen && (
-        <div className="fixed inset-0 z-40 bg-black/95 backdrop-blur-md animate-in fade-in duration-200">
-          <nav className="flex flex-col items-center justify-center h-full gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                className={`text-2xl font-medium py-3 px-6 transition-colors ${
-                  pathname === link.href
-                    ? 'text-pink-400'
-                    : 'text-neutral-300 hover:text-white'
-                }`}
-              >
-                {link.name}
+      {menuOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/95 backdrop-blur-md z-40 flex flex-col justify-center items-center px-6 space-y-6 animate-in fade-in duration-200">
+          <Link href="/" onClick={() => setMenuOpen(false)} className="text-2xl font-medium text-neutral-200 hover:text-pink-300 transition py-2">
+            Eserler
+          </Link>
+          {user ? (
+            <>
+              <span className="text-neutral-400 text-base">{user.email}</span>
+              <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="text-2xl font-medium text-neutral-400 hover:text-white py-2 transition">
+                Çıkış Yap
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login" onClick={() => setMenuOpen(false)} className="text-2xl font-medium text-neutral-200 hover:text-white py-2 transition">
+                Giriş Yap
               </Link>
-            ))}
-          </nav>
+              <Link href="/auth/signup" onClick={() => setMenuOpen(false)} className="w-full max-w-xs bg-pink-400 text-black py-3 rounded-xl text-center text-lg font-medium hover:bg-pink-300 transition mt-4">
+                Kayıt Ol
+              </Link>
+            </>
+          )}
         </div>
       )}
-    </header>
+    </nav>
   );
 }

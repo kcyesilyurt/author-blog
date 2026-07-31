@@ -2,7 +2,7 @@ export interface Profile {
   id: string;
   display_name: string;
   avatar_url: string | null;
-  instagram_username: string | null;
+  is_banned: boolean;
   created_at: string;
 }
 
@@ -38,7 +38,7 @@ export interface Comment {
   profiles?: {
     display_name: string;
     avatar_url: string | null;
-    instagram_username: string | null;
+    is_banned?: boolean;
   } | null;
 }
 

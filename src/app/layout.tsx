@@ -15,13 +15,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_SITE_NAME || 'Author Blog',
-  description: process.env.NEXT_PUBLIC_SITE_DESCRIPTION || 'Stories and thoughts',
+  title: process.env.NEXT_PUBLIC_SITE_NAME || 'Övgü Deveci Safi',
+  description: process.env.NEXT_PUBLIC_SITE_DESCRIPTION || 'Hikayeler ve Düşünceler',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="tr" className="dark">
       <body className={`${inter.variable} ${lora.variable} font-sans bg-black text-white min-h-screen antialiased flex flex-col`}>
         <Navbar />
         <main className="flex-1 pt-16">{children}</main>

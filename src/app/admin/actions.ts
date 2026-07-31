@@ -8,7 +8,7 @@ async function assertAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.email !== process.env.ADMIN_EMAIL) {
-    throw new Error('Unauthorized');
+    throw new Error('Yetkisiz erişim');
   }
 }
 
@@ -125,4 +125,29 @@ export async function uploadCoverImage(formData: FormData): Promise<string> {
 
   const { data } = admin.storage.from('covers').getPublicUrl(fileName);
   return data.publicUrl;
+}
+
+// Moderation Actions
+export async function deleteComment(commentId: string) {
+  await assertAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from('comments').delete().eq('id', commentId);
+  if (error) throw new Error(error.message);
+  revalidatePath('/admin/comments');
+}
+
+export async function banUser(userId: string) {
+  await assertAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from('profiles').update({ is_banned: true }).eq('id', userId);
+  if (error) throw new Error(error.message);
+  revalidatePath('/admin/users');
+}
+
+export async function unbanUser(userId: string) {
+  await assertAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from('profiles').update({ is_banned: false }).eq('id', userId);
+  if (error) throw new Error(error.message);
+  revalidatePath('/admin/users');
 }

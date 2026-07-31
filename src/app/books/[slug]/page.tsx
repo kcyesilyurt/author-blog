@@ -14,11 +14,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createClient();
   const { data: book } = await supabase.from('books').select('title, description').eq('slug', slug).single();
 
-  if (!book) return { title: 'Book Not Found' };
+  if (!book) return { title: 'Eser Bulunamadı' };
   
   return {
     title: book.title,
-    description: book.description || `Read ${book.title}`,
+    description: book.description || `${book.title} eserini oku`,
   };
 }
 
@@ -43,7 +43,7 @@ export default async function BookPage({ params }: Props) {
     .order('chapter_order', { ascending: true });
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return new Date(dateStr).toLocaleDateString('tr-TR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -56,41 +56,41 @@ export default async function BookPage({ params }: Props) {
     <div className="max-w-4xl mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
         {book.cover_url && (
-          <div className="flex-shrink-0 w-64 aspect-[3/4] relative rounded-xl shadow-2xl overflow-hidden">
+          <div className="flex-shrink-0 w-56 sm:w-64 aspect-[3/4] relative rounded-xl shadow-2xl overflow-hidden border border-neutral-800">
             <Image 
               src={book.cover_url} 
-              alt={`Cover of ${book.title}`} 
+              alt={`${book.title} kapak görseli`} 
               fill 
               className="object-cover"
-              sizes="256px"
+              sizes="(max-width: 768px) 224px, 256px"
             />
           </div>
         )}
         <div className="flex-1 text-center md:text-left">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">{book.title}</h1>
-          <p className="mt-4 text-lg text-neutral-400 leading-relaxed">
+          <p className="mt-4 text-base sm:text-lg text-neutral-300 leading-relaxed">
             {book.description}
           </p>
-          <p className="text-sm text-neutral-500 mt-2">
-            Published on {formatDate(book.created_at)}
+          <p className="text-sm text-neutral-500 mt-3">
+            Yayınlanma tarihi: {formatDate(book.created_at)}
           </p>
         </div>
       </div>
 
       <div className="mt-12">
         <h2 className="text-2xl font-semibold text-white mb-6">
-          {isPostType ? 'Content' : 'Chapters'}
+          {isPostType ? 'İçerik' : 'Bölümler'}
         </h2>
         
         {(!chapters || chapters.length === 0) ? (
-          <p className="text-neutral-500">No chapters yet.</p>
+          <p className="text-neutral-500">Henüz bölüm bulunmuyor.</p>
         ) : (
           <div className="space-y-3">
             {chapters.map((chapter: Chapter) => (
               <Link 
                 key={chapter.id} 
                 href={`/books/${slug}/${chapter.slug}`}
-                className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-lg px-5 py-4 flex items-center justify-between group transition-all"
+                className="bg-neutral-900/60 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-lg px-5 py-4 flex items-center justify-between group transition-all"
               >
                 <div className="flex items-center gap-4">
                   {!isPostType && (

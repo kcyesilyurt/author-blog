@@ -24,7 +24,7 @@ export default function LoginPage() {
     });
 
     if (signInError) {
-      setError(signInError.message);
+      setError('Giriş başarısız. E-posta veya şifre hatalı.');
       setLoading(false);
     } else {
       router.push('/');
@@ -34,15 +34,15 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4">
-      <div className="glass-card bg-neutral-900 rounded-2xl p-8 w-full max-w-sm border border-neutral-800">
-        <h1 className="text-2xl font-bold text-white text-center">Welcome back</h1>
-        <p className="text-neutral-400 text-sm text-center mt-1 mb-6">Sign in to your account</p>
+      <div className="glass-card bg-neutral-900/50 rounded-2xl p-6 sm:p-8 w-full max-w-sm border border-neutral-800">
+        <h1 className="text-2xl font-bold text-white text-center">Tekrar Hoş Geldiniz</h1>
+        <p className="text-neutral-400 text-sm text-center mt-1 mb-6">Hesabınıza giriş yapın</p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
               type="email"
-              placeholder="Email"
+              placeholder="E-posta Adresi"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -52,7 +52,7 @@ export default function LoginPage() {
           <div>
             <input
               type="password"
-              placeholder="Password"
+              placeholder="Şifre"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -67,14 +67,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-pink-400 hover:bg-pink-300 text-black font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
           </button>
         </form>
         
         <div className="text-neutral-400 text-sm text-center mt-6">
-          Don't have an account?{' '}
+          Hesabınız yok mu?{' '}
           <Link href="/auth/signup" className="text-pink-400 hover:underline">
-            Sign up
+            Kayıt olun
           </Link>
         </div>
       </div>

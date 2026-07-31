@@ -2,168 +2,145 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
-import Link from 'next/link';
-import InstagramBadge from '@/components/InstagramBadge';
-
-interface Comment {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string | null;
-  profiles?: {
-    display_name: string | null;
-    avatar_url: string | null;
-    instagram_username: string | null;
-  };
-}
+import { timeAgo } from '@/lib/utils';
+import type { User } from '@supabase/supabase-js';
+import type { Comment } from '@/lib/types';
 
 export default function CommentSection({ chapterId }: { chapterId: string }) {
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [newComment, setNewComment] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isBanned, setIsBanned] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      fetchComments();
-    };
-    init();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user);
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_banned')
+          .eq('id', data.user.id)
+          .single();
+        if (profile?.is_banned) {
+          setIsBanned(true);
+        }
       }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+    });
+    fetchComments();
+  }, [chapterId, supabase]);
 
   const fetchComments = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles(display_name, avatar_url, instagram_username)')
+      .select('*, profiles(display_name, avatar_url, is_banned)')
       .eq('chapter_id', chapterId)
       .order('created_at', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching comments:', error);
-    } else {
-      setComments(data as any[]);
+
+    if (!error && data) {
+      setComments(data as Comment[]);
     }
     setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBanned) return;
     if (!newComment.trim()) return;
+    if (!user && !guestName.trim()) return;
 
-    // For now, allow anonymous comments if not logged in
-    const commentData = {
+    setSubmitting(true);
+    const commentData: Partial<Comment> = {
       chapter_id: chapterId,
-      content: newComment,
-      user_id: user?.id || null,
+      content: newComment.trim(),
     };
 
-    const { error } = await supabase
-      .from('comments')
-      .insert(commentData);
-
-    if (error) {
-      console.error('Error posting comment:', error);
-      alert('Failed to post comment.');
+    if (user) {
+      commentData.user_id = user.id;
     } else {
-      setNewComment('');
-      fetchComments();
+      commentData.guest_name = guestName.trim();
     }
+
+    const { error } = await supabase.from('comments').insert(commentData);
+
+    if (!error) {
+      setNewComment('');
+      if (!user) setGuestName('');
+      await fetchComments();
+    }
+    setSubmitting(false);
   };
 
   return (
-    <div className="mt-12">
-      <h3 className="text-xl font-serif font-bold text-white mb-6">Comments ({comments.length})</h3>
-      
-      {/* Comment Form */}
-      <div className="mb-10 bg-neutral-900/50 border border-neutral-800 rounded-xl p-5">
-        {!user && (
-          <div className="mb-4 text-sm text-neutral-400 flex items-center justify-between">
-            <span>You are commenting as a Guest.</span>
-            <Link href="/auth/signin" className="text-pink-400 hover:text-pink-300 transition-colors">
-              Sign in
-            </Link>
-          </div>
+    <section className="mt-16 border-t border-neutral-800 pt-8 font-sans">
+      <h3 className="text-xl font-semibold text-white mb-6">
+        Yorumlar <span className="text-neutral-500 font-normal">({comments.length})</span>
+      </h3>
+
+      <div className="space-y-4">
+        {loading ? (
+          <p className="text-neutral-500 text-sm italic">Yorumlar yükleniyor...</p>
+        ) : comments.length > 0 ? (
+          comments.map(comment => (
+            <div key={comment.id} className="bg-neutral-900/60 rounded-xl p-5 border-l-2 border-pink-400/40 border-r border-t border-b border-neutral-800/80">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="font-medium text-neutral-200">
+                  {comment.profiles?.display_name || comment.guest_name || 'Anonim'}
+                </span>
+                {!comment.user_id && (
+                  <span className="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full border border-neutral-700">
+                    Ziyaretçi
+                  </span>
+                )}
+                <span className="text-neutral-600">•</span>
+                <span className="text-xs text-neutral-500">{timeAgo(comment.created_at)}</span>
+              </div>
+              <p className="text-neutral-300 text-base leading-relaxed">{comment.content}</p>
+            </div>
+          ))
+        ) : (
+          <p className="text-neutral-500 text-sm italic">Henüz yorum yapılmamış. İlk yorumu siz yapın!</p>
         )}
-        <form onSubmit={handleSubmit}>
+      </div>
+
+      {isBanned ? (
+        <div className="mt-8 bg-red-950/30 border border-red-800/50 rounded-xl p-4 text-center text-red-400 text-sm">
+          Hesabınız askıya alındığı için yorum yapamazsınız.
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-8 glass-card bg-neutral-900/40 rounded-xl p-6 border border-neutral-800">
+          {!user && (
+            <input
+              type="text"
+              placeholder="İsminiz (gerekli)"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              className="mb-4 bg-neutral-800 border border-neutral-700 focus:border-pink-400 focus:outline-none rounded-lg px-4 py-2.5 w-full text-neutral-200 placeholder:text-neutral-500 transition-colors font-sans text-sm"
+              required={!user}
+            />
+          )}
           <textarea
+            placeholder="Düşüncelerinizi paylaşın..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Share your thoughts on this chapter..."
-            className="w-full bg-black border border-neutral-700 rounded-lg p-3 text-white placeholder:text-neutral-600 focus:outline-none focus:ring-1 focus:ring-pink-400 focus:border-pink-400 resize-none min-h-[100px]"
+            className="bg-neutral-800 border border-neutral-700 focus:border-pink-400 focus:outline-none rounded-lg px-4 py-2.5 w-full text-neutral-200 placeholder:text-neutral-500 transition-colors font-sans text-sm min-h-[120px] resize-y"
             required
           />
-          <div className="mt-3 flex justify-end">
+          <div className="flex justify-end mt-3">
             <button
               type="submit"
-              disabled={!newComment.trim()}
-              className="px-5 py-2 bg-pink-400 hover:bg-pink-300 text-black font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              disabled={submitting || (!newComment.trim()) || (!user && !guestName.trim())}
+              className="bg-pink-400 hover:bg-pink-300 text-black font-medium rounded-lg px-5 py-2.5 text-sm transition-colors disabled:opacity-50"
             >
-              Post Comment
+              {submitting ? 'Gönderiliyor...' : 'Yorum Gönder'}
             </button>
           </div>
         </form>
-      </div>
-
-      {/* Comments List */}
-      <div className="space-y-6">
-        {loading ? (
-          <p className="text-neutral-500 text-center py-4">Loading comments...</p>
-        ) : comments.length === 0 ? (
-          <p className="text-neutral-500 text-center py-8 bg-neutral-900/30 rounded-xl border border-neutral-800 border-dashed">
-            No comments yet. Be the first to share your thoughts!
-          </p>
-        ) : (
-          comments.map((comment) => (
-            <div key={comment.id} className="flex gap-4 p-4 rounded-xl bg-neutral-900/30 border border-neutral-800 border-l-2 border-l-pink-400/30">
-              <div className="w-10 h-10 rounded-full bg-neutral-800 flex-shrink-0 flex items-center justify-center text-neutral-400 overflow-hidden border border-neutral-700">
-                {comment.profiles?.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={comment.profiles.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-neutral-200 text-sm">
-                    {comment.profiles?.display_name || 'Guest User'}
-                  </span>
-                  
-                  {comment.profiles?.instagram_username && (
-                    <InstagramBadge username={comment.profiles.instagram_username} />
-                  )}
-                  
-                  {!comment.user_id && (
-                    <span className="text-xs bg-neutral-800 text-neutral-500 px-1.5 py-0.5 rounded">Guest</span>
-                  )}
-                  <span className="text-xs text-neutral-600">
-                    {new Date(comment.created_at).toLocaleDateString(undefined, { 
-                      month: 'short', day: 'numeric', year: 'numeric' 
-                    })}
-                  </span>
-                </div>
-                <p className="text-neutral-300 text-sm whitespace-pre-wrap leading-relaxed">
-                  {comment.content}
-                </p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+      )}
+    </section>
   );
 }

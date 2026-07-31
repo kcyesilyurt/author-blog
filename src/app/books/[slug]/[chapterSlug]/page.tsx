@@ -18,10 +18,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createClient();
   
   const { data: book } = await supabase.from('books').select('id, title').eq('slug', slug).single();
-  if (!book) return { title: 'Not Found' };
+  if (!book) return { title: 'Sayfa Bulunamadı' };
   
   const { data: chapter } = await supabase.from('chapters').select('title').eq('book_id', book.id).eq('slug', chapterSlug).single();
-  if (!chapter) return { title: 'Not Found' };
+  if (!chapter) return { title: 'Sayfa Bulunamadı' };
   
   return {
     title: `${chapter.title} - ${book.title}`,
@@ -54,12 +54,12 @@ export default async function ChapterPage({ params }: Props) {
   return (
     <div>
       <div className="max-w-[680px] mx-auto px-4 sm:px-6 pt-8 pb-4">
-        <nav className="text-sm text-neutral-500 flex items-center space-x-2">
-          <Link href="/" className="hover:text-pink-300 transition">Home</Link>
+        <nav className="text-sm text-neutral-500 flex items-center space-x-2 flex-wrap">
+          <Link href="/" className="hover:text-pink-300 transition">Ana Sayfa</Link>
           <span>/</span>
           <Link href={`/books/${slug}`} className="hover:text-pink-300 transition">{book.title}</Link>
           <span>/</span>
-          <span className="text-neutral-400">{currentChapter.title}</span>
+          <span className="text-neutral-400 truncate max-w-[200px]">{currentChapter.title}</span>
         </nav>
       </div>
 
