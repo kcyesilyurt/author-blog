@@ -34,9 +34,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4">
-      <div className="bg-zinc-900 rounded-2xl p-8 w-full max-w-sm border border-zinc-800">
-        <h1 className="text-2xl font-bold text-zinc-100 text-center">Welcome back</h1>
-        <p className="text-zinc-400 text-sm text-center mt-1 mb-6">Sign in to your account</p>
+      <div className="glass-card bg-neutral-900 rounded-2xl p-8 w-full max-w-sm border border-neutral-800">
+        <h1 className="text-2xl font-bold text-white text-center">Welcome back</h1>
+        <p className="text-neutral-400 text-sm text-center mt-1 mb-6">Sign in to your account</p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -46,7 +46,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 focus:border-amber-500 focus:outline-none rounded-lg px-4 py-2.5 w-full text-zinc-200"
+              className="bg-neutral-800 border border-neutral-700 focus:border-pink-400 focus:outline-none rounded-lg px-4 py-2.5 w-full text-neutral-200"
             />
           </div>
           <div>
@@ -56,7 +56,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 focus:border-amber-500 focus:outline-none rounded-lg px-4 py-2.5 w-full text-zinc-200"
+              className="bg-neutral-800 border border-neutral-700 focus:border-pink-400 focus:outline-none rounded-lg px-4 py-2.5 w-full text-neutral-200"
             />
           </div>
           
@@ -65,15 +65,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50"
+            className="w-full bg-pink-400 hover:bg-pink-300 text-black font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
         
-        <div className="text-zinc-400 text-sm text-center mt-6">
+        <div className="text-neutral-400 text-sm text-center mt-6">
           Don't have an account?{' '}
-          <Link href="/auth/signup" className="text-amber-500 hover:underline">
+          <Link href="/auth/signup" className="text-pink-400 hover:underline">
             Sign up
           </Link>
         </div>

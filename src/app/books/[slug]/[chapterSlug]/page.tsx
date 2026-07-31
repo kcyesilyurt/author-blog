@@ -54,17 +54,17 @@ export default async function ChapterPage({ params }: Props) {
   return (
     <div>
       <div className="max-w-[680px] mx-auto px-4 sm:px-6 pt-8 pb-4">
-        <nav className="text-sm text-zinc-500 flex items-center space-x-2">
-          <Link href="/" className="hover:text-amber-400 transition">Home</Link>
+        <nav className="text-sm text-neutral-500 flex items-center space-x-2">
+          <Link href="/" className="hover:text-pink-300 transition">Home</Link>
           <span>/</span>
-          <Link href={`/books/${slug}`} className="hover:text-amber-400 transition">{book.title}</Link>
+          <Link href={`/books/${slug}`} className="hover:text-pink-300 transition">{book.title}</Link>
           <span>/</span>
-          <span className="text-zinc-400">{currentChapter.title}</span>
+          <span className="text-neutral-400">{currentChapter.title}</span>
         </nav>
       </div>
 
       <ReaderLayout>
-        <h1 className="text-3xl sm:text-4xl font-bold text-zinc-50 mb-8 font-sans">
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-8 font-sans">
           {currentChapter.title}
         </h1>
         <MarkdownRenderer content={currentChapter.content} />

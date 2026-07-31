@@ -65,14 +65,14 @@ export default function ChapterEditorPage() {
 
   return (
     <div className="pb-24 relative min-h-[calc(100vh-8rem)]">
-      <Link href={`/admin/books/${id}`} className="text-sm text-zinc-500 hover:text-amber-500 mb-6 inline-block">&larr; Back to Book</Link>
+      <Link href={`/admin/books/${id}`} className="text-sm text-neutral-500 hover:text-pink-400 mb-6 inline-block">&larr; Back to Book</Link>
       
       <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-1 bg-zinc-800 rounded-lg p-1">
+        <div className="flex gap-1 bg-neutral-800 rounded-lg p-1">
           <button
             onClick={() => setMode('edit')}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
-              mode === 'edit' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400 hover:text-zinc-300'
+              mode === 'edit' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-neutral-300'
             }`}
           >
             Edit
@@ -80,7 +80,7 @@ export default function ChapterEditorPage() {
           <button
             onClick={() => setMode('preview')}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
-              mode === 'preview' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400 hover:text-zinc-300'
+              mode === 'preview' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-neutral-300'
             }`}
           >
             Preview
@@ -90,7 +90,7 @@ export default function ChapterEditorPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-medium rounded-lg px-6 py-2 text-sm transition"
+          className="bg-pink-400 hover:bg-pink-300 disabled:opacity-50 text-black font-medium rounded-lg px-6 py-2 text-sm transition"
         >
           {saving ? 'Saving...' : 'Save'}
         </button>
@@ -103,7 +103,7 @@ export default function ChapterEditorPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Chapter Title"
-            className="text-2xl font-bold bg-transparent border-b border-zinc-700 focus:border-amber-500 focus:outline-none w-full py-2 text-zinc-100"
+            className="text-2xl font-bold bg-transparent border-b border-neutral-700 focus:border-pink-400 focus:outline-none w-full py-2 text-white"
           />
           <div className="flex gap-4">
             <input
@@ -111,27 +111,27 @@ export default function ChapterEditorPage() {
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               placeholder="slug"
-              className="text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 w-64 text-zinc-200 focus:outline-none focus:border-amber-500"
+              className="text-sm bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 w-64 text-neutral-200 focus:outline-none focus:border-pink-400"
             />
             <input
               type="number"
               value={chapterOrder}
               onChange={(e) => setChapterOrder(parseInt(e.target.value) || 0)}
               placeholder="Order"
-              className="text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 w-24 text-zinc-200 focus:outline-none focus:border-amber-500"
+              className="text-sm bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 w-24 text-neutral-200 focus:outline-none focus:border-pink-400"
             />
           </div>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write your chapter in Markdown..."
-            className="w-full min-h-[500px] bg-zinc-800 border border-zinc-700 focus:border-amber-500 focus:outline-none rounded-lg p-4 text-zinc-200 font-mono text-sm leading-relaxed resize-y"
+            className="w-full min-h-[500px] bg-neutral-800 border border-neutral-700 focus:border-pink-400 focus:outline-none rounded-lg p-4 text-neutral-200 font-mono text-sm leading-relaxed resize-y"
           />
         </div>
       ) : (
-        <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 min-h-[500px] flex justify-center">
+        <div className="bg-neutral-900 rounded-xl p-8 border border-neutral-800 min-h-[500px] flex justify-center">
           <div 
-            className="reader-content font-serif text-lg leading-relaxed text-zinc-200 max-w-[680px] w-full"
+            className="reader-content font-serif text-lg leading-relaxed text-neutral-200 max-w-[680px] w-full"
             dangerouslySetInnerHTML={{ __html: htmlPreview }} 
           />
         </div>

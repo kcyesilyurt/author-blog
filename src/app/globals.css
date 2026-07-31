@@ -47,14 +47,14 @@
 }
 
 .reader-content a {
-  color: #f59e0b; /* amber-500 */
+  color: #F472B6; /* pink-400 */
   text-decoration: underline;
   text-underline-offset: 2px;
   transition: color 0.2s;
 }
 
 .reader-content a:hover {
-  color: #fbbf24; /* amber-400 */
+  color: #F9A8D4; /* pink-300 */
 }
 
 .reader-content strong {
@@ -67,8 +67,8 @@
 }
 
 .reader-content code {
-  background-color: #27272a; /* zinc-800 */
-  color: #fbbf24;
+  background-color: #1a1a1a; /* neutral-900 / 800 */
+  color: #F9A8D4;
   padding: 0.15rem 0.4rem;
   border-radius: 0.25rem;
   font-size: 0.875em;
@@ -76,8 +76,8 @@
 }
 
 .reader-content pre {
-  background-color: #18181b; /* zinc-900 */
-  border: 1px solid #27272a;
+  background-color: #111;
+  border: 1px solid #1a1a1a;
   border-radius: 0.5rem;
   padding: 1.25rem;
   overflow-x: auto;
@@ -94,7 +94,7 @@
 }
 
 .reader-content blockquote {
-  border-left: 3px solid #f59e0b;
+  border-left: 3px solid #F472B6;
   padding-left: 1rem;
   margin-left: 0;
   margin-bottom: 1.25rem;
@@ -121,7 +121,7 @@
 
 .reader-content hr {
   border: none;
-  border-top: 1px solid #3f3f46; /* zinc-700 */
+  border-top: 1px solid #1a1a1a;
   margin: 2rem 0;
 }
 
@@ -138,14 +138,31 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: #000;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: #1a1a1a;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: #333;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(244, 114, 182, 0.08);
+}
+
+.instagram-gradient {
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+button, a, input, textarea, select {
+  transition: all 0.2s ease-in-out;
 }

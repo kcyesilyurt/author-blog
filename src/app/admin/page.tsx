@@ -103,45 +103,45 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-medium text-zinc-200">Content Library</h2>
+        <h2 className="text-xl font-medium text-neutral-200">Content Library</h2>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-medium rounded-lg px-4 py-2 text-sm transition"
+          className="bg-pink-400 hover:bg-pink-300 text-black font-medium rounded-lg px-4 py-2 text-sm transition"
         >
           {showCreateForm ? 'Cancel' : 'Create New'}
         </button>
       </div>
 
       {showCreateForm && (
-        <form onSubmit={handleSubmit} className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 mb-8 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 mb-8 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">Title</label>
+            <label className="block text-sm font-medium text-neutral-400 mb-1">Title</label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">Description</label>
+            <label className="block text-sm font-medium text-neutral-400 mb-1">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
             />
           </div>
 
           <div className="flex gap-4">
             <div className="w-1/2">
-              <label className="block text-sm font-medium text-zinc-400 mb-1">Type</label>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Type</label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as 'book' | 'post')}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
               >
                 <option value="book">Book</option>
                 <option value="post">Post</option>
@@ -150,23 +150,23 @@ export default function AdminDashboardPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">Cover Image</label>
+            <label className="block text-sm font-medium text-neutral-400 mb-1">Cover Image</label>
             <div className="flex gap-4 items-center">
               <input
                 type="text"
                 value={coverUrl}
                 onChange={(e) => setCoverUrl(e.target.value)}
                 placeholder="Image URL..."
-                className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+                className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
               />
-              <span className="text-zinc-500 text-sm">OR</span>
+              <span className="text-neutral-500 text-sm">OR</span>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
-                className="text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-800 file:text-zinc-300 hover:file:bg-zinc-700"
+                className="text-sm text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-neutral-800 file:text-neutral-300 hover:file:bg-neutral-700"
               />
-              {uploading && <span className="text-sm text-amber-500">Uploading...</span>}
+              {uploading && <span className="text-sm text-pink-400">Uploading...</span>}
             </div>
           </div>
 
@@ -174,7 +174,7 @@ export default function AdminDashboardPage() {
             <button
               type="submit"
               disabled={creating || uploading}
-              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-medium rounded-lg px-6 py-2 text-sm transition"
+              className="bg-pink-400 hover:bg-pink-300 disabled:opacity-50 text-black font-medium rounded-lg px-6 py-2 text-sm transition"
             >
               {creating ? 'Creating...' : 'Create'}
             </button>
@@ -182,57 +182,92 @@ export default function AdminDashboardPage() {
         </form>
       )}
 
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-zinc-800/50 text-xs text-zinc-400 uppercase tracking-wider">
-              <th className="px-6 py-4 font-medium">Title</th>
-              <th className="px-6 py-4 font-medium w-32">Type</th>
-              <th className="px-6 py-4 font-medium w-48">Created</th>
-              <th className="px-6 py-4 font-medium w-32">Chapters</th>
-              <th className="px-6 py-4 font-medium w-32 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-800">
-            {books.map((book) => (
-              <tr key={book.id} className="hover:bg-zinc-800/30 transition group">
-                <td className="px-6 py-4">
-                  <Link href={`/admin/books/${book.id}`} className="font-medium text-zinc-200 hover:text-amber-500 transition">
-                    {book.title}
-                  </Link>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${book.type === 'post' ? 'bg-amber-500/10 text-amber-500' : 'bg-zinc-700 text-zinc-300'}`}>
-                    {book.type}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-zinc-400">
-                  {formatDate(book.created_at)}
-                </td>
-                <td className="px-6 py-4 text-sm text-zinc-400">
-                  {book.type === 'book' ? (book as any).chapterCount || '0' : 'N/A'}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition">
-                    <Link href={`/admin/books/${book.id}`} className="text-sm text-zinc-400 hover:text-amber-500">
-                      Edit
+      <div className="bg-neutral-900 rounded-xl border border-neutral-800 overflow-hidden">
+        <div className="hidden md:block">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-neutral-800/50 text-xs text-neutral-400 uppercase tracking-wider">
+                <th className="px-6 py-4 font-medium">Title</th>
+                <th className="px-6 py-4 font-medium w-32">Type</th>
+                <th className="px-6 py-4 font-medium w-48">Created</th>
+                <th className="px-6 py-4 font-medium w-32">Chapters</th>
+                <th className="px-6 py-4 font-medium w-32 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-800">
+              {books.map((book) => (
+                <tr key={book.id} className="hover:bg-neutral-800/30 transition group">
+                  <td className="px-6 py-4">
+                    <Link href={`/admin/books/${book.id}`} className="font-medium text-neutral-200 hover:text-pink-400 transition">
+                      {book.title}
                     </Link>
-                    <button onClick={() => handleDelete(book.id)} className="text-sm text-zinc-400 hover:text-red-400">
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {books.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-zinc-500 text-sm">
-                  No content found. Create your first book or post!
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${book.type === 'post' ? 'bg-pink-400/10 text-pink-400' : 'bg-neutral-700 text-neutral-300'}`}>
+                      {book.type}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-400">
+                    {formatDate(book.created_at)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-400">
+                    {book.type === 'book' ? (book as any).chapterCount || '0' : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition">
+                      <Link href={`/admin/books/${book.id}`} className="text-sm text-neutral-400 hover:text-pink-400">
+                        Edit
+                      </Link>
+                      <button onClick={() => handleDelete(book.id)} className="text-sm text-neutral-400 hover:text-red-400">
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {books.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-neutral-500 text-sm">
+                    No content found. Create your first book or post!
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden flex flex-col divide-y divide-neutral-800">
+          {books.map((book) => (
+            <div key={book.id} className="p-4 space-y-3 bg-neutral-900 border border-neutral-800 m-2 rounded-lg">
+              <div className="flex justify-between items-start">
+                <Link href={`/admin/books/${book.id}`} className="font-medium text-neutral-200 hover:text-pink-400 transition">
+                  {book.title}
+                </Link>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${book.type === 'post' ? 'bg-pink-400/10 text-pink-400' : 'bg-neutral-700 text-neutral-300'}`}>
+                  {book.type}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm text-neutral-400">
+                <span>{formatDate(book.created_at)}</span>
+                <span>{book.type === 'book' ? `${(book as any).chapterCount || '0'} Chapters` : ''}</span>
+              </div>
+              <div className="flex gap-4 pt-2 border-t border-neutral-800/50">
+                <Link href={`/admin/books/${book.id}`} className="text-sm text-neutral-400 hover:text-pink-400">
+                  Edit
+                </Link>
+                <button onClick={() => handleDelete(book.id)} className="text-sm text-neutral-400 hover:text-red-400">
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+          {books.length === 0 && (
+            <div className="p-8 text-center text-neutral-500 text-sm">
+              No content found. Create your first book or post!
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

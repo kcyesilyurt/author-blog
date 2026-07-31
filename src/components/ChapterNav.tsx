@@ -8,20 +8,20 @@ export default function ChapterNav({ bookSlug, chapters, currentChapterId }: { b
   const next = currentIndex !== -1 && currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 
   return (
-    <div className="border-t border-zinc-800 pt-8 mt-12 flex items-stretch justify-between gap-4">
+    <div className="border-t border-neutral-800 pt-8 mt-12 flex flex-col sm:flex-row items-stretch justify-between gap-4">
       {prev ? (
-        <Link href={`/books/${bookSlug}/${prev.slug}`} className="bg-zinc-900 hover:bg-zinc-800 rounded-lg px-5 py-4 transition-colors flex-1 group border border-zinc-800 hover:border-zinc-700">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider">← Previous</div>
-          <div className="text-sm font-medium text-zinc-200 group-hover:text-amber-400 transition-colors mt-1">{prev.title}</div>
+        <Link href={`/books/${bookSlug}/${prev.slug}`} className="bg-neutral-900 hover:bg-neutral-800 rounded-lg px-4 py-5 sm:px-5 sm:py-4 transition-colors flex-1 group border border-neutral-800 hover:border-pink-400/30">
+          <div className="text-xs text-neutral-500 uppercase tracking-wider">← Previous</div>
+          <div className="text-sm font-medium text-neutral-200 group-hover:text-pink-300 transition-colors mt-1">{prev.title}</div>
         </Link>
       ) : (
         <div className="flex-1"></div>
       )}
       
       {next ? (
-        <Link href={`/books/${bookSlug}/${next.slug}`} className="bg-zinc-900 hover:bg-zinc-800 rounded-lg px-5 py-4 transition-colors flex-1 group border border-zinc-800 hover:border-zinc-700 text-right">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider">Next →</div>
-          <div className="text-sm font-medium text-zinc-200 group-hover:text-amber-400 transition-colors mt-1">{next.title}</div>
+        <Link href={`/books/${bookSlug}/${next.slug}`} className="bg-neutral-900 hover:bg-neutral-800 rounded-lg px-4 py-5 sm:px-5 sm:py-4 transition-colors flex-1 group border border-neutral-800 hover:border-pink-400/30 text-right">
+          <div className="text-xs text-neutral-500 uppercase tracking-wider">Next →</div>
+          <div className="text-sm font-medium text-neutral-200 group-hover:text-pink-300 transition-colors mt-1">{next.title}</div>
         </Link>
       ) : (
         <div className="flex-1"></div>

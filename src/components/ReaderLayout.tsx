@@ -1,7 +1,13 @@
-export default function ReaderLayout({ children }: { children: React.ReactNode }) {
+export default function ReaderLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <article className="max-w-[680px] mx-auto px-4 sm:px-6 py-8 font-serif text-lg leading-relaxed text-zinc-200">
-      {children}
-    </article>
+    <div className="min-h-screen bg-black">
+      <main className="max-w-3xl mx-auto py-12 px-5 sm:px-6 md:px-8 lg:px-12 bg-black">
+        {children}
+      </main>
+    </div>
   );
 }

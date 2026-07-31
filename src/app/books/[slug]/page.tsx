@@ -67,42 +67,42 @@ export default async function BookPage({ params }: Props) {
           </div>
         )}
         <div className="flex-1 text-center md:text-left">
-          <h1 className="text-3xl sm:text-4xl font-bold text-zinc-100">{book.title}</h1>
-          <p className="mt-4 text-lg text-zinc-400 leading-relaxed">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">{book.title}</h1>
+          <p className="mt-4 text-lg text-neutral-400 leading-relaxed">
             {book.description}
           </p>
-          <p className="text-sm text-zinc-500 mt-2">
+          <p className="text-sm text-neutral-500 mt-2">
             Published on {formatDate(book.created_at)}
           </p>
         </div>
       </div>
 
       <div className="mt-12">
-        <h2 className="text-2xl font-semibold text-zinc-100 mb-6">
+        <h2 className="text-2xl font-semibold text-white mb-6">
           {isPostType ? 'Content' : 'Chapters'}
         </h2>
         
         {(!chapters || chapters.length === 0) ? (
-          <p className="text-zinc-500">No chapters yet.</p>
+          <p className="text-neutral-500">No chapters yet.</p>
         ) : (
           <div className="space-y-3">
             {chapters.map((chapter: Chapter) => (
               <Link 
                 key={chapter.id} 
                 href={`/books/${slug}/${chapter.slug}`}
-                className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-lg px-5 py-4 flex items-center justify-between group transition-all"
+                className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-lg px-5 py-4 flex items-center justify-between group transition-all"
               >
                 <div className="flex items-center gap-4">
                   {!isPostType && (
-                    <span className="text-amber-500 font-mono text-sm w-8">
+                    <span className="text-pink-400 font-mono text-sm w-8">
                       {String(chapter.chapter_order).padStart(2, '0')}
                     </span>
                   )}
-                  <span className="font-medium text-zinc-200 group-hover:text-amber-400 transition-colors">
+                  <span className="font-medium text-neutral-200 group-hover:text-pink-300 transition-colors">
                     {chapter.title}
                   </span>
                 </div>
-                <span className="text-zinc-600 group-hover:text-zinc-400 transition-colors">
+                <span className="text-neutral-600 group-hover:text-neutral-400 transition-colors">
                   →
                 </span>
               </Link>

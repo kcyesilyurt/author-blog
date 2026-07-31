@@ -2,6 +2,7 @@ export interface Profile {
   id: string;
   display_name: string;
   avatar_url: string | null;
+  instagram_username: string | null;
   created_at: string;
 }
 
@@ -34,7 +35,11 @@ export interface Comment {
   guest_name: string | null;
   content: string;
   created_at: string;
-  profiles?: Profile | null;
+  profiles?: {
+    display_name: string;
+    avatar_url: string | null;
+    instagram_username: string | null;
+  } | null;
 }
 
 export interface Reaction {

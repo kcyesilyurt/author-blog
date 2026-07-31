@@ -131,75 +131,75 @@ export default function BookEditorPage() {
     }
   };
 
-  if (!book) return <div className="text-zinc-400">Loading...</div>;
+  if (!book) return <div className="text-neutral-400">Loading...</div>;
 
   return (
     <div className="space-y-12">
       <div>
-        <Link href="/admin" className="text-sm text-zinc-500 hover:text-amber-500 mb-4 inline-block">&larr; Back to Dashboard</Link>
-        <h2 className="text-2xl font-bold text-zinc-100 mb-6">Edit {type === 'post' ? 'Post' : 'Book'}</h2>
+        <Link href="/admin" className="text-sm text-neutral-500 hover:text-pink-400 mb-4 inline-block">&larr; Back to Dashboard</Link>
+        <h2 className="text-2xl font-bold text-white mb-6">Edit {type === 'post' ? 'Post' : 'Book'}</h2>
         
-        <form onSubmit={handleBookSave} className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 space-y-4">
+        <form onSubmit={handleBookSave} className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">Title</label>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Title</label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">Slug</label>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Slug</label>
               <input
                 type="text"
                 required
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">Description</label>
+            <label className="block text-sm font-medium text-neutral-400 mb-1">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
             />
           </div>
 
           <div className="flex gap-4">
             <div className="w-1/3">
-              <label className="block text-sm font-medium text-zinc-400 mb-1">Type</label>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Type</label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as 'book' | 'post')}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
               >
                 <option value="book">Book</option>
                 <option value="post">Post</option>
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-zinc-400 mb-1">Cover Image</label>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Cover Image</label>
               <div className="flex gap-4 items-center">
                 <input
                   type="text"
                   value={coverUrl}
                   onChange={(e) => setCoverUrl(e.target.value)}
                   placeholder="Image URL..."
-                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
                 />
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleFileUpload}
-                  className="text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-800 file:text-zinc-300 hover:file:bg-zinc-700"
+                  className="text-sm text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-neutral-800 file:text-neutral-300 hover:file:bg-neutral-700"
                 />
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function BookEditorPage() {
             <button
               type="submit"
               disabled={savingBook || uploading}
-              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-medium rounded-lg px-6 py-2 text-sm transition"
+              className="bg-pink-400 hover:bg-pink-300 disabled:opacity-50 text-black font-medium rounded-lg px-6 py-2 text-sm transition"
             >
               {savingBook ? 'Saving...' : 'Save Changes'}
             </button>
@@ -220,31 +220,31 @@ export default function BookEditorPage() {
       {type === 'book' && (
         <div>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-medium text-zinc-200">Chapters</h2>
+            <h2 className="text-xl font-medium text-neutral-200">Chapters</h2>
             <button
               onClick={() => setShowChapterForm(!showChapterForm)}
-              className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg px-4 py-2 text-sm transition border border-zinc-700"
+              className="bg-neutral-800 hover:bg-neutral-700 text-white font-medium rounded-lg px-4 py-2 text-sm transition border border-neutral-700"
             >
               {showChapterForm ? 'Cancel' : 'Add Chapter'}
             </button>
           </div>
 
           {showChapterForm && (
-            <form onSubmit={handleCreateChapter} className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 mb-6 flex gap-4 items-end">
+            <form onSubmit={handleCreateChapter} className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 mb-6 flex gap-4 items-end">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Chapter Title</label>
+                <label className="block text-sm font-medium text-neutral-400 mb-1">Chapter Title</label>
                 <input
                   type="text"
                   required
                   value={chapterTitle}
                   onChange={(e) => setChapterTitle(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400"
                 />
               </div>
               <button
                 type="submit"
                 disabled={creatingChapter}
-                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-medium rounded-lg px-6 py-2 transition h-10"
+                className="bg-pink-400 hover:bg-pink-300 disabled:opacity-50 text-black font-medium rounded-lg px-6 py-2 transition h-10"
               >
                 {creatingChapter ? 'Adding...' : 'Add'}
               </button>
@@ -253,24 +253,24 @@ export default function BookEditorPage() {
 
           <div className="space-y-3">
             {chapters.map((chapter) => (
-              <div key={chapter.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex items-center justify-between group">
+              <div key={chapter.id} className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-center justify-between group">
                 <div className="flex items-center gap-4">
-                  <div className="text-zinc-600 cursor-grab">⋮⋮</div>
-                  <div className="text-amber-500 font-mono text-sm w-8">{chapter.chapter_order}</div>
-                  <div className="text-zinc-200 font-medium">{chapter.title}</div>
+                  <div className="text-neutral-600 cursor-grab">⋮⋮</div>
+                  <div className="text-pink-400 font-mono text-sm w-8">{chapter.chapter_order}</div>
+                  <div className="text-neutral-200 font-medium">{chapter.title}</div>
                 </div>
                 <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition">
-                  <Link href={`/admin/books/${id}/chapters/${chapter.id}`} className="text-sm text-zinc-400 hover:text-amber-500">
+                  <Link href={`/admin/books/${id}/chapters/${chapter.id}`} className="text-sm text-neutral-400 hover:text-pink-400">
                     Edit Content
                   </Link>
-                  <button onClick={() => handleDeleteChapter(chapter.id)} className="text-sm text-zinc-400 hover:text-red-400">
+                  <button onClick={() => handleDeleteChapter(chapter.id)} className="text-sm text-neutral-400 hover:text-red-400">
                     Delete
                   </button>
                 </div>
               </div>
             ))}
             {chapters.length === 0 && !showChapterForm && (
-              <div className="text-center py-8 text-zinc-500 text-sm bg-zinc-900/50 rounded-lg border border-zinc-800/50">
+              <div className="text-center py-8 text-neutral-500 text-sm bg-neutral-900/50 rounded-lg border border-neutral-800/50">
                 No chapters yet. Add one to get started.
               </div>
             )}

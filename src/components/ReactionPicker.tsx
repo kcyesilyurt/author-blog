@@ -2,115 +2,137 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { getGuestId } from '@/lib/utils';
-import type { User } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 
-const REACTION_TYPES = [
-  { type: 'like', emoji: '👍', label: 'Like' },
-  { type: 'heart', emoji: '❤️', label: 'Heart' },
-  { type: 'bookmark', emoji: '🔖', label: 'Bookmark' }
-];
+type ReactionType = 'heart' | 'fire' | 'mindblown' | 'tears';
+
+interface ReactionCounts {
+  heart: number;
+  fire: number;
+  mindblown: number;
+  tears: number;
+}
+
+const REACTION_EMOJIS: Record<ReactionType, string> = {
+  heart: '❤️',
+  fire: '🔥',
+  mindblown: '🤯',
+  tears: '😭'
+};
 
 export default function ReactionPicker({ chapterId }: { chapterId: string }) {
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [activeReactions, setActiveReactions] = useState<Set<string>>(new Set());
+  const [counts, setCounts] = useState<ReactionCounts>({
+    heart: 0,
+    fire: 0,
+    mindblown: 0,
+    tears: 0
+  });
+  const [userReaction, setUserReaction] = useState<ReactionType | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const supabase = createClient();
-  const guestId = getGuestId();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    fetchReactions();
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      fetchReactions(user?.id);
+    };
+    init();
   }, [chapterId, supabase]);
 
-  const fetchReactions = async () => {
-    const { data: countData, error: countError } = await supabase
+  const fetchReactions = async (userId?: string) => {
+    setLoading(true);
+    // 1. Get total counts
+    // We can do an aggregate query using RPC, or just fetch and count if small scale.
+    // For MVP, we'll fetch all reactions for this chapter.
+    const { data: allReactions, error } = await supabase
       .from('reactions')
-      .select('type')
+      .select('type, user_id')
       .eq('chapter_id', chapterId);
       
-    if (!countError && countData) {
-      const newCounts: Record<string, number> = {};
-      countData.forEach(r => {
-        newCounts[r.type] = (newCounts[r.type] || 0) + 1;
+    if (!error && allReactions) {
+      const newCounts = { heart: 0, fire: 0, mindblown: 0, tears: 0 };
+      let currentUserReaction: ReactionType | null = null;
+      
+      allReactions.forEach(r => {
+        if (r.type in newCounts) {
+          newCounts[r.type as ReactionType]++;
+        }
+        if (userId && r.user_id === userId) {
+          currentUserReaction = r.type as ReactionType;
+        }
       });
+      
       setCounts(newCounts);
+      setUserReaction(currentUserReaction);
     }
-
-    const currentUser = (await supabase.auth.getUser()).data.user;
-    let query = supabase.from('reactions').select('type').eq('chapter_id', chapterId);
-    
-    if (currentUser) {
-      query = query.eq('user_id', currentUser.id);
-    } else {
-      query = query.eq('guest_identifier', guestId).is('user_id', null);
-    }
-
-    const { data: activeData, error: activeError } = await query;
-    if (!activeError && activeData) {
-      setActiveReactions(new Set(activeData.map(r => r.type)));
-    }
+    setLoading(false);
   };
 
-  const toggleReaction = async (type: string) => {
-    const isActive = activeReactions.has(type);
-    const currentUser = user || (await supabase.auth.getUser()).data.user;
-    
-    setActiveReactions(prev => {
-      const next = new Set(prev);
-      if (isActive) next.delete(type);
-      else next.add(type);
-      return next;
-    });
-    setCounts(prev => ({
-      ...prev,
-      [type]: (prev[type] || 0) + (isActive ? -1 : 1)
-    }));
-
-    if (isActive) {
-      let query = supabase.from('reactions').delete().eq('chapter_id', chapterId).eq('type', type);
-      if (currentUser) {
-        query = query.eq('user_id', currentUser.id);
-      } else {
-        query = query.eq('guest_identifier', guestId).is('user_id', null);
-      }
-      await query;
-    } else {
-      const data: any = { chapter_id: chapterId, type };
-      if (currentUser) {
-        data.user_id = currentUser.id;
-      } else {
-        data.guest_identifier = guestId;
-      }
-      await supabase.from('reactions').insert(data);
+  const handleReaction = async (type: ReactionType) => {
+    if (!user) {
+      alert("Please sign in to react to chapters!");
+      return;
     }
-    
-    fetchReactions();
+
+    if (userReaction === type) {
+      // Toggle off
+      const { error } = await supabase
+        .from('reactions')
+        .delete()
+        .eq('chapter_id', chapterId)
+        .eq('user_id', user.id);
+        
+      if (!error) {
+        setUserReaction(null);
+        setCounts(prev => ({ ...prev, [type]: Math.max(0, prev[type] - 1) }));
+      }
+    } else {
+      // If had previous reaction, this is an upsert (handled by unique constraint + ON CONFLICT DO UPDATE)
+      // Or we can delete old and insert new. Supabase allows upsert if we have unique composite key.
+      const { error } = await supabase
+        .from('reactions')
+        .upsert({
+          chapter_id: chapterId,
+          user_id: user.id,
+          type: type
+        }, { onConflict: 'chapter_id,user_id' });
+        
+      if (!error) {
+        setCounts(prev => {
+          const next = { ...prev };
+          if (userReaction) {
+            next[userReaction] = Math.max(0, next[userReaction] - 1);
+          }
+          next[type]++;
+          return next;
+        });
+        setUserReaction(type);
+      }
+    }
   };
 
   return (
-    <div className="flex items-center gap-3 mt-8 font-sans">
-      {REACTION_TYPES.map(({ type, emoji, label }) => {
-        const isActive = activeReactions.has(type);
-        const count = counts[type] || 0;
-        
+    <div className="flex flex-wrap items-center gap-3 py-6 border-y border-neutral-800 mt-12 mb-8">
+      <span className="text-sm font-medium text-neutral-400 mr-2">Reactions:</span>
+      {(Object.keys(REACTION_EMOJIS) as ReactionType[]).map(type => {
+        const isActive = userReaction === type;
         return (
           <button
             key={type}
-            onClick={() => toggleReaction(type)}
-            aria-label={label}
-            className={`group flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 text-sm border ${
+            onClick={() => handleReaction(type)}
+            disabled={loading}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all ${
               isActive 
-                ? 'bg-amber-500/10 border-amber-500/50 text-amber-400' 
-                : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'
+                ? 'bg-pink-400/10 border-pink-400/50 text-pink-300' 
+                : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:border-neutral-700'
             }`}
           >
-            <span className="text-lg group-hover:scale-110 transition-transform">{emoji}</span>
-            {count > 0 && (
-              <span className={isActive ? 'text-amber-400' : 'text-zinc-400'}>
-                {count}
-              </span>
-            )}
+            <span className="text-lg leading-none">{REACTION_EMOJIS[type]}</span>
+            <span className={`text-xs font-semibold ${isActive ? 'text-pink-300' : 'text-neutral-500'}`}>
+              {counts[type]}
+            </span>
           </button>
         );
       })}
