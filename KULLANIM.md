@@ -239,8 +239,123 @@ Eski `/kayip-liman` ve `/tanri-kuyusunun-kemikleri` adresleri ancak aynı slug'l
 ## Yayından sonra güncelleme
 
 - Kitap, bölüm, blog, etkinlik, kullanıcı ve mesaj işlemleri yönetim panelinden yapılır. Bunlar Supabase'e kaydedildiği için Git commit'i veya Vercel dağıtımı gerekmez.
-- Tasarım, sayfa düzeni, uygulama davranışı ve mevcut YouTube listesi kodun parçasıdır. Güvenli akış: ayrı Git dalına değişikliği gönderin, Vercel Preview adresinde deneyin, sonra `main` dalına birleştirin. `main` güncellenince Vercel üretim alan adını otomatik olarak yeni sürüme geçirir.
+- Tasarım, sayfa düzeni, uygulama davranışı ve mevcut YouTube listesi kodun parçasıdır. Bunlar aşağıdaki Git/Vercel akışıyla yayımlanır.
 - Hatalı bir kod sürümü yayımlanırsa Vercel'deki önceki production deployment'a rollback yapılabilir. Bu işlem Supabase verilerini veya migration'ları geri almaz.
+
+### Kod değişikliğini güvenli biçimde `main` dalına taşıma
+
+`main` bu projenin canlı production dalıdır. `main` güncellendiğinde Vercel otomatik olarak yeni canlı sürüm oluşturur. Bu nedenle doğrudan `main` üzerinde çalışmak yerine değişikliği ayrı bir dalda hazırlayıp Vercel Preview'da kontrol etmek daha güvenlidir.
+
+#### 1. Temiz ve güncel bir `main` ile başlayın
+
+Terminali açın ve sırayla çalıştırın:
+
+```bash
+cd /Users/kcyesilyurt/.codex/author-blog
+git status --short
+git switch main
+git pull --ff-only origin main
+git status --short
+```
+
+İlk ve son `git status` komutu normalde hiçbir çıktı vermemelidir. Beklemediğiniz dosyalar görünüyorsa sonraki komuta geçmeyin; onları silmeden veya ezmeden önce ne olduklarını kontrol edin. `git pull --ff-only`, uzak ve yerel geçmiş ayrışmışsa otomatik birleştirme yapmadan durur.
+
+#### 2. Değişiklik için ayrı bir dal oluşturun
+
+Dal adında boşluk veya Türkçe karakter kullanmayın:
+
+```bash
+git switch -c degisiklik/kisa-aciklama
+```
+
+Örneğin YouTube videolarını değiştirmek için `degisiklik/youtube-videolari` adı kullanılabilir.
+
+#### 3. Dosyaları düzenleyip yerelde kontrol edin
+
+Değişikliği kod editöründe yaptıktan sonra proje kökünde şu kontrolleri çalıştırın:
+
+```bash
+npm test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Komutlardan biri hata verirse commit veya push yapmayın. Önce hatayı düzeltin. `npm run build` sırasında Google Fonts ağ hatası alınırsa internet bağlantısını kontrol edip bir kez daha deneyebilirsiniz; TypeScript veya kod hatasını ağ hatası sanmayın.
+
+#### 4. Yalnızca istediğiniz dosyaları commit edin
+
+Önce değişiklikleri inceleyin:
+
+```bash
+git status --short
+git diff --check
+git diff
+git check-ignore -v .env.local
+```
+
+Son komut `.env.local` dosyasının `.gitignore` tarafından dışlandığını göstermelidir. Bu repo herkese açık olduğu için `.env.local`, Supabase service-role/secret anahtarı, Vercel token'ı, özel anahtar veya parola hiçbir zaman commit edilmemelidir.
+
+`git add .` yerine yalnızca gerçekten değiştirdiğiniz dosyaları açıkça yazın. Örnek:
+
+```bash
+git add src/app/page.tsx KULLANIM.md
+git diff --cached
+git commit -m "Update homepage videos"
+```
+
+`git diff --cached`, commit'e girecek son içeriği gösterir. Burada beklenmeyen dosya veya gizli bilgi görürseniz commit işlemine devam etmeyin.
+
+#### 5. Dalı GitHub'a gönderip Preview'u deneyin
+
+Komuttaki dal adını ikinci adımda seçtiğiniz adla aynı yazın:
+
+```bash
+git push -u origin degisiklik/kisa-aciklama
+```
+
+Ardından GitHub'da `kcyesilyurt/author-blog` reposunu açın:
+
+1. `Compare & pull request` düğmesine basın.
+2. `base` alanının `main`, `compare` alanının değişiklik dalınız olduğunu doğrulayın.
+3. Pull request'i oluşturun ve Vercel kontrolünün tamamlanmasını bekleyin.
+4. Vercel'in verdiği Preview bağlantısında `/`, `/pano`, değişen sayfa ve mobil görünümü kontrol edin.
+
+Preview ortamı production ile aynı Supabase projesini kullanıyorsa panelden yaptığınız ekleme/silme işlemleri gerçek veriyi değiştirebilir. Preview'u mümkün olduğunca görüntüleme ve tasarım testi için kullanın. Preview build ortam değişkeni hatası verirse Vercel `Project > Settings > Environment Variables` ekranında gerekli değişkenlerin `Preview` kapsamına da açık olduğunu kontrol edin; anahtarları koda yazmayın.
+
+#### 6. Değişikliği canlıya alın
+
+Preview doğru ve Vercel kontrolü yeşilse GitHub pull request ekranından `Merge pull request` düğmesine basın. Birleştirme `main` dalını günceller ve Vercel production deployment'ını otomatik başlatır.
+
+1. Vercel `Deployments` ekranında yeni production kaydının `Ready` olmasını bekleyin.
+2. Canlı ana sayfayı ve değiştirdiğiniz rotaları kontrol edin.
+3. Yerel kopyayı yeniden güncelleyin:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git status --short
+```
+
+#### 7. Canlı sürümde sorun çıkarsa
+
+- Yeni commit göndermeye devam etmeyin ve `git push --force`, `git reset --hard` gibi geçmişi ezen komutları kullanmayın.
+- Hızlı geri dönüş için Vercel `Deployments` ekranından bir önceki sağlıklı production sürümüne rollback yapın.
+- Kalıcı düzeltme için hatalı commit'i `git revert` ile geri alan yeni bir commit oluşturabilirsiniz:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git log --oneline -5
+git revert HATALI_COMMIT_KIMLIGI
+git push origin main
+```
+
+`git revert` editör açarsa varsayılan mesajı kaydedip kapatın. Bu yalnızca kod sürümünü geri alır; Supabase migration'ı veya production verisi etkilenmişse ayrıca değerlendirme gerekir.
+
+Bu akış GitHub'ın pull request geçmişini, Vercel Preview kontrolünü ve geri dönüş imkânını korur. Yalnızca yönetim panelinden yapılan içerik değişikliklerinde bu komutların hiçbirine ihtiyaç yoktur.
+
+Resmî başvuru sayfaları: [GitHub pull request oluşturma](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/creating-a-pull-request) ve [Vercel Git deployment akışı](https://vercel.com/docs/git).
 
 ## Yayındaki siteyi geçici kapatma
 
