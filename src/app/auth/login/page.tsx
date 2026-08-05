@@ -1,16 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { getSafeInternalPath } from '@/lib/auth-redirect';
 import { createClient } from '@/lib/supabase/client';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const callbackError = searchParams.has('error')
+    ? 'Doğrulama bağlantısı kullanılamadı. Lütfen yeniden giriş yapın.'
+    : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,16 +32,16 @@ export default function LoginPage() {
       setError('Giriş başarısız. E-posta veya şifre hatalı.');
       setLoading(false);
     } else {
-      router.push('/');
+      router.replace(getSafeInternalPath(searchParams.get('next')));
       router.refresh();
     }
   };
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4">
-      <div className="glass-card bg-neutral-900/50 rounded-2xl p-6 sm:p-8 w-full max-w-sm border border-neutral-800">
-        <h1 className="text-2xl font-bold text-white text-center">Tekrar Hoş Geldiniz</h1>
-        <p className="text-neutral-400 text-sm text-center mt-1 mb-6">Hesabınıza giriş yapın</p>
+      <div className="glass-card bg-[#64090C]/10 rounded-2xl p-6 sm:p-8 w-full max-w-sm border border-[#64090C]/30">
+        <h1 className="text-2xl font-bold text-[#EFEACD] text-center">Tekrar Hoş Geldiniz</h1>
+        <p className="text-[#EFEACD]/60 text-sm text-center mt-1 mb-6">Hesabınıza giriş yapın</p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -46,7 +51,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-neutral-800 border border-neutral-700 focus:border-pink-400 focus:outline-none rounded-lg px-4 py-2.5 w-full text-neutral-200"
+              className="bg-[#64090C]/20 border border-[#64090C]/30 focus:border-[#F8D794] focus:outline-none rounded-lg px-4 py-2.5 w-full text-[#EFEACD]"
             />
           </div>
           <div>
@@ -56,28 +61,44 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-neutral-800 border border-neutral-700 focus:border-pink-400 focus:outline-none rounded-lg px-4 py-2.5 w-full text-neutral-200"
+              className="bg-[#64090C]/20 border border-[#64090C]/30 focus:border-[#F8D794] focus:outline-none rounded-lg px-4 py-2.5 w-full text-[#EFEACD]"
             />
           </div>
           
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {(error || callbackError) && (
+            <p className="text-red-400 text-sm">{error || callbackError}</p>
+          )}
           
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-pink-400 hover:bg-pink-300 text-black font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50"
+            className="w-full bg-[#9C0512] hover:bg-[#9C0512]/80 text-[#EFEACD] font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50"
           >
             {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
           </button>
         </form>
         
-        <div className="text-neutral-400 text-sm text-center mt-6">
+        <div className="text-[#EFEACD]/60 text-sm text-center mt-6">
           Hesabınız yok mu?{' '}
-          <Link href="/auth/signup" className="text-pink-400 hover:underline">
+          <Link href="/auth/signup" className="text-[#F8D794] hover:underline">
             Kayıt olun
           </Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 text-[#EFEACD]/70">
+          Giriş sayfası yükleniyor...
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

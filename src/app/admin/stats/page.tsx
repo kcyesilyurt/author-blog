@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function AdminStatsPage() {
@@ -12,7 +12,7 @@ export default function AdminStatsPage() {
     usersCount: 0,
   });
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -29,7 +29,7 @@ export default function AdminStatsPage() {
         supabase.from('chapters').select('*', { count: 'exact', head: true }),
         supabase.from('comments').select('*', { count: 'exact', head: true }),
         supabase.from('reactions').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
       ]);
 
       setStats({
@@ -49,7 +49,7 @@ export default function AdminStatsPage() {
   const cards = [
     { title: 'Toplam Eser', value: stats.booksCount, icon: '📚', desc: 'Kitap ve blog yazıları' },
     { title: 'Toplam Bölüm', value: stats.chaptersCount, icon: '📄', desc: 'Yayınlanan metin bölümleri' },
-    { title: 'Okuyucu Yorumları', value: stats.commentsCount, icon: '💬', desc: 'Ziyaretçi ve üye yorumları' },
+    { title: 'Okuyucu Yorumları', value: stats.commentsCount, icon: '💬', desc: 'Misafir ve üye yorumları' },
     { title: 'Toplam Tepkiler', value: stats.reactionsCount, icon: '❤️', desc: 'Beğeni, kalp ve yer imleri' },
     { title: 'Kayıtlı Üyeler', value: stats.usersCount, icon: '👥', desc: 'Sisteme kayıtlı profiller' },
   ];

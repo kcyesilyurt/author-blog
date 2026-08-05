@@ -1,16 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { slugify } from '@/lib/utils';
 import { Book, Chapter } from '@/lib/types';
-import { updateBook, createChapter, deleteChapter, uploadCoverImage } from '../../actions';
+import { toDateTimeLocal, type PublicationStatus } from '@/lib/validation';
+import {
+  COVER_IMAGE_MAX_BYTES,
+  formatUploadLimit,
+} from '@/lib/upload-limits';
+import {
+  createChapter,
+  createCoverUploadTicket,
+  deleteChapter,
+  finalizeCoverUpload,
+  updateBook,
+} from '../../actions';
 
 export default function BookEditorPage() {
   const { id } = useParams() as { id: string };
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -20,6 +31,8 @@ export default function BookEditorPage() {
   const [description, setDescription] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [type, setType] = useState<'book' | 'post'>('book');
+  const [status, setStatus] = useState<PublicationStatus>('draft');
+  const [publishedAt, setPublishedAt] = useState('');
   
   const [savingBook, setSavingBook] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -28,7 +41,7 @@ export default function BookEditorPage() {
   const [chapterTitle, setChapterTitle] = useState('');
   const [creatingChapter, setCreatingChapter] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const { data: bookData, error: bookError } = await supabase
       .from('books')
       .select('*')
@@ -46,6 +59,8 @@ export default function BookEditorPage() {
     setDescription(bookData.description || '');
     setCoverUrl(bookData.cover_url || '');
     setType(bookData.type as 'book' | 'post');
+    setStatus((bookData.status as PublicationStatus) || 'draft');
+    setPublishedAt(toDateTimeLocal(bookData.published_at));
 
     const { data: chaptersData, error: chaptersError } = await supabase
       .from('chapters')
@@ -56,11 +71,12 @@ export default function BookEditorPage() {
     if (!chaptersError && chaptersData) {
       setChapters(chaptersData);
     }
-  };
+  }, [id, supabase]);
 
   useEffect(() => {
-    fetchData();
-  }, [id]);
+    const timeout = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchData]);
 
   const handleBookSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +88,8 @@ export default function BookEditorPage() {
       formData.append('description', description);
       formData.append('cover_url', coverUrl);
       formData.append('type', type);
+      formData.append('status', status);
+      formData.append('published_at', publishedAt);
       await updateBook(id, formData);
       alert('Değişiklikler başarıyla kaydedildi.');
     } catch (err) {
@@ -84,15 +102,28 @@ export default function BookEditorPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    if (file.size > COVER_IMAGE_MAX_BYTES) {
+      alert(`Kapak görseli en fazla ${formatUploadLimit(COVER_IMAGE_MAX_BYTES)} olabilir.`);
+      e.target.value = '';
+      return;
+    }
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', e.target.files[0]);
-      const url = await uploadCoverImage(formData);
+      const ticket = await createCoverUploadTicket({ mime: file.type, size: file.size });
+      const { error } = await supabase.storage
+        .from('covers')
+        .uploadToSignedUrl(ticket.path, ticket.token, file, {
+          contentType: file.type,
+          cacheControl: '31536000',
+        });
+      if (error) throw new Error('Kapak görseli Storage alanına yüklenemedi');
+
+      const url = await finalizeCoverUpload(ticket.path);
       setCoverUrl(url);
     } catch (err) {
       console.error(err);
-      alert('Görsel yüklenemedi');
+      alert(err instanceof Error ? err.message : 'Görsel yüklenemedi');
     } finally {
       setUploading(false);
     }
@@ -185,6 +216,19 @@ export default function BookEditorPage() {
                 <option value="post">Blog Yazısı</option>
               </select>
             </div>
+            <div className="w-full sm:w-1/3">
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Yayın Durumu</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as PublicationStatus)}
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400 text-sm"
+              >
+                <option value="draft">Taslak</option>
+                <option value="published">Yayında</option>
+                <option value="scheduled">Planlı</option>
+                <option value="archived">Arşivde</option>
+              </select>
+            </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-neutral-400 mb-1">Kapak Görseli</label>
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -197,13 +241,31 @@ export default function BookEditorPage() {
                 />
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handleFileUpload}
                   className="text-sm text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-neutral-800 file:text-neutral-300 hover:file:bg-neutral-700"
                 />
               </div>
+              <p className="mt-1.5 text-xs text-neutral-500">
+                JPEG, PNG veya WebP · en fazla {formatUploadLimit(COVER_IMAGE_MAX_BYTES)}
+              </p>
             </div>
           </div>
+
+          {(status === 'scheduled' || status === 'published') && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">
+                {status === 'scheduled' ? 'Planlanan Yayın Tarihi' : 'Yayın Tarihi'}
+              </label>
+              <input
+                type="datetime-local"
+                value={publishedAt}
+                onChange={(e) => setPublishedAt(e.target.value)}
+                required={status === 'scheduled'}
+                className="w-full sm:w-72 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400 text-sm"
+              />
+            </div>
+          )}
 
           <div className="pt-4 flex justify-end">
             <button
@@ -217,16 +279,17 @@ export default function BookEditorPage() {
         </form>
       </div>
 
-      {type === 'book' && (
-        <div>
+      <div>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-medium text-neutral-200">Bölümler</h2>
-            <button
-              onClick={() => setShowChapterForm(!showChapterForm)}
-              className="bg-neutral-800 hover:bg-neutral-700 text-white font-medium rounded-lg px-4 py-2 text-sm transition border border-neutral-700"
-            >
-              {showChapterForm ? 'İptal' : '+ Yeni Bölüm Ekle'}
-            </button>
+            <h2 className="text-xl font-medium text-neutral-200">{type === 'post' ? 'Yazı İçeriği' : 'Bölümler'}</h2>
+            {(type === 'book' || chapters.length === 0) && (
+              <button
+                onClick={() => setShowChapterForm(!showChapterForm)}
+                className="bg-neutral-800 hover:bg-neutral-700 text-white font-medium rounded-lg px-4 py-2 text-sm transition border border-neutral-700"
+              >
+                {showChapterForm ? 'İptal' : type === 'post' ? '+ İçerik Ekle' : '+ Yeni Bölüm Ekle'}
+              </button>
+            )}
           </div>
 
           {showChapterForm && (
@@ -258,6 +321,9 @@ export default function BookEditorPage() {
                 <div className="flex items-center gap-4">
                   <div className="text-pink-400 font-mono text-sm w-8">{chapter.chapter_order}</div>
                   <div className="text-neutral-200 font-medium">{chapter.title}</div>
+                  <span className="text-xs text-neutral-500">
+                    {chapter.status === 'published' ? 'Yayında' : chapter.status === 'scheduled' ? 'Planlı' : chapter.status === 'archived' ? 'Arşivde' : 'Taslak'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-4">
                   <Link href={`/admin/books/${id}/chapters/${chapter.id}`} className="text-sm text-neutral-400 hover:text-pink-400">
@@ -275,8 +341,7 @@ export default function BookEditorPage() {
               </div>
             )}
           </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

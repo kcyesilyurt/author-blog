@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
 import { deleteComment } from '../actions';
@@ -19,9 +19,9 @@ interface CommentItem {
 export default function AdminCommentsPage() {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('comments')
@@ -29,14 +29,15 @@ export default function AdminCommentsPage() {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      setComments(data as any[]);
+      setComments(data as CommentItem[]);
     }
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
-    fetchComments();
-  }, []);
+    const timeout = window.setTimeout(() => void fetchComments(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchComments]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Bu yorumu silmek istediğinize emin misiniz?')) return;
@@ -81,7 +82,7 @@ export default function AdminCommentsPage() {
                   </span>
                   {!comment.user_id && (
                     <span className="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full border border-neutral-700">
-                      Ziyaretçi
+                      Misafir
                     </span>
                   )}
                   <span className="text-neutral-600">•</span>

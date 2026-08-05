@@ -1,4 +1,5 @@
 import { slugify } from './utils';
+import { escapeHtml, sanitizeMarkdownUrl } from './html-safety';
 
 export function renderMarkdown(md: string): string {
   // 1. Extract code blocks to protect them from further processing
@@ -11,27 +12,21 @@ export function renderMarkdown(md: string): string {
     
     if (firstLineEnd !== -1) {
       const possibleLang = content.slice(0, firstLineEnd).trim();
-      if (possibleLang && !possibleLang.includes(' ')) {
+      if (/^[a-z0-9_-]+$/i.test(possibleLang)) {
         lang = possibleLang;
         code = content.slice(firstLineEnd + 1);
       }
     }
     
     // HTML-escape the content
-    const escapedCode = code
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    const escapedCode = escapeHtml(code);
       
     codeBlocks.push(`<pre><code${lang ? ` class="language-${lang}"` : ''}>${escapedCode}</code></pre>`);
     return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
   });
 
   // Basic HTML sanitization for non-code block text
-  processedMd = processedMd
-    .replace(/&/g, '&amp;') // Must do & first
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  processedMd = escapeHtml(processedMd);
 
   // Split into paragraphs/blocks (separated by 2+ newlines)
   const blocks = processedMd.split(/\n\s*\n/);
@@ -104,10 +99,20 @@ function parseInline(text: string): string {
   let result = text;
   
   // Images: ![alt](url)
-  result = result.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />');
+  result = result.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt: string, url: string) => {
+    const sanitizedUrl = sanitizeMarkdownUrl(url, true);
+    return sanitizedUrl
+      ? `<img src="${sanitizedUrl}" alt="${alt}" loading="lazy" />`
+      : alt;
+  });
   
   // Links: [text](url)
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label: string, url: string) => {
+    const sanitizedUrl = sanitizeMarkdownUrl(url, false);
+    return sanitizedUrl
+      ? `<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`
+      : label;
+  });
   
   // Bold: **text**
   result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');

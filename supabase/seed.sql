@@ -98,23 +98,40 @@ Yaratıcılık ilham beklemekle gelmez, masaya oturup çalışmakla ortaya çık
 );
 
 -- Örnek Yorumlar
+UPDATE books
+SET status = 'published', published_at = COALESCE(published_at, created_at, NOW())
+WHERE id IN (
+  'b1111111-1111-1111-1111-111111111111',
+  'b2222222-2222-2222-2222-222222222222',
+  'b3333333-3333-3333-3333-333333333333'
+);
+
+UPDATE chapters
+SET status = 'published', published_at = COALESCE(published_at, created_at, NOW())
+WHERE book_id IN (
+  'b1111111-1111-1111-1111-111111111111',
+  'b2222222-2222-2222-2222-222222222222',
+  'b3333333-3333-3333-3333-333333333333'
+);
+
+-- Örnek Yorumlar
 INSERT INTO comments (id, chapter_id, guest_name, content, created_at) VALUES
 (
-  'm1111111-1111-1111-1111-111111111111',
+  'd1111111-1111-1111-1111-111111111111',
   'c1111111-1111-1111-1111-111111111111',
   'Selin Yılmaz',
   'Betimlemeler o kadar canlı ki sanki ben de o kıyıda durup rüzgarı hissediyorum. Harika bir başlangıç!',
   NOW() - INTERVAL '7 days'
 ),
 (
-  'm2222222-2222-2222-2222-222222222222',
+  'd2222222-2222-2222-2222-222222222222',
   'c1111111-1111-1111-1111-111111111111',
   'Ahmet Demir',
   'İkinci bölüm ne zaman gelecek? Merakla bekliyorum!',
   NOW() - INTERVAL '6 days'
 ),
 (
-  'm3333333-3333-3333-3333-333333333333',
+  'd3333333-3333-3333-3333-333333333333',
   'c2222222-2222-2222-2222-111111111111',
   'Elif Kaya',
   'Dizeler çok derin ve anlamlı. Yüreğinize sağlık Övgü Hanım.',

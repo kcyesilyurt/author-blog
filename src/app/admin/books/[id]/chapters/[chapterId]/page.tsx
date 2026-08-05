@@ -1,28 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { updateChapter } from '../../../../actions';
 import { renderMarkdown } from '@/lib/markdown';
+import { toDateTimeLocal, type PublicationStatus } from '@/lib/validation';
 
 export default function ChapterEditorPage() {
   const { id, chapterId } = useParams() as { id: string; chapterId: string };
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
   const [chapterOrder, setChapterOrder] = useState(0);
+  const [status, setStatus] = useState<PublicationStatus>('draft');
+  const [publishedAt, setPublishedAt] = useState('');
   
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-  const [htmlPreview, setHtmlPreview] = useState('');
+  const htmlPreview = useMemo(() => renderMarkdown(content), [content]);
 
   useEffect(() => {
     const fetchChapter = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('chapters')
         .select('*')
         .eq('id', chapterId)
@@ -33,16 +36,12 @@ export default function ChapterEditorPage() {
         setSlug(data.slug);
         setContent(data.content || '');
         setChapterOrder(data.chapter_order);
+        setStatus((data.status as PublicationStatus) || 'draft');
+        setPublishedAt(toDateTimeLocal(data.published_at));
       }
     };
     fetchChapter();
-  }, [chapterId]);
-
-  useEffect(() => {
-    if (mode === 'preview') {
-      setHtmlPreview(renderMarkdown(content));
-    }
-  }, [content, mode]);
+  }, [chapterId, supabase]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -52,6 +51,8 @@ export default function ChapterEditorPage() {
       formData.append('slug', slug);
       formData.append('content', content);
       formData.append('chapter_order', String(chapterOrder));
+      formData.append('status', status);
+      formData.append('published_at', publishedAt);
       
       await updateChapter(chapterId, formData);
       alert('Bölüm kaydedildi!');
@@ -120,6 +121,27 @@ export default function ChapterEditorPage() {
               placeholder="Sıra"
               className="text-sm bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 w-24 text-neutral-200 focus:outline-none focus:border-pink-400"
             />
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as PublicationStatus)}
+              aria-label="Yayın durumu"
+              className="text-sm bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-pink-400"
+            >
+              <option value="draft">Taslak</option>
+              <option value="published">Yayında</option>
+              <option value="scheduled">Planlı</option>
+              <option value="archived">Arşivde</option>
+            </select>
+            {(status === 'scheduled' || status === 'published') && (
+              <input
+                type="datetime-local"
+                value={publishedAt}
+                onChange={(e) => setPublishedAt(e.target.value)}
+                required={status === 'scheduled'}
+                aria-label="Yayın tarihi"
+                className="text-sm bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-pink-400"
+              />
+            )}
           </div>
           <textarea
             value={content}

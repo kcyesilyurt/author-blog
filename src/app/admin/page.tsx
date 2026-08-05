@@ -1,24 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { slugify, formatDate } from '@/lib/utils';
 import { Book } from '@/lib/types';
-import { createBook, deleteBook, uploadCoverImage } from './actions';
+import type { PublicationStatus } from '@/lib/validation';
+import {
+  COVER_IMAGE_MAX_BYTES,
+  formatUploadLimit,
+} from '@/lib/upload-limits';
+import {
+  createBook,
+  createCoverUploadTicket,
+  deleteBook,
+  finalizeCoverUpload,
+} from './actions';
+
+type BookWithCount = Book & { chapterCount: number };
 
 export default function AdminDashboardPage() {
-  const [books, setBooks] = useState<Book[]>([]);
+  const [books, setBooks] = useState<BookWithCount[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'book' | 'post'>('book');
   const [coverUrl, setCoverUrl] = useState('');
+  const [status, setStatus] = useState<PublicationStatus>('draft');
+  const [publishedAt, setPublishedAt] = useState('');
   const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     const { data, error } = await supabase
       .from('books')
       .select(`
@@ -32,30 +46,44 @@ export default function AdminDashboardPage() {
       return;
     }
     
-    const formattedData = (data || []).map((book: any) => ({
+    const rawBooks = (data ?? []) as Array<Book & { chapters?: Array<{ count: number }> }>;
+    const formattedData: BookWithCount[] = rawBooks.map((book) => ({
       ...book,
       chapterCount: book.chapters && book.chapters[0] ? book.chapters[0].count : 0
     }));
 
-    setBooks(formattedData as any);
-  };
+    setBooks(formattedData);
+  }, [supabase]);
 
   useEffect(() => {
-    fetchBooks();
-  }, []);
+    const timeout = window.setTimeout(() => void fetchBooks(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchBooks]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
+    if (file.size > COVER_IMAGE_MAX_BYTES) {
+      alert(`Kapak görseli en fazla ${formatUploadLimit(COVER_IMAGE_MAX_BYTES)} olabilir.`);
+      e.target.value = '';
+      return;
+    }
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const url = await uploadCoverImage(formData);
+      const ticket = await createCoverUploadTicket({ mime: file.type, size: file.size });
+      const { error } = await supabase.storage
+        .from('covers')
+        .uploadToSignedUrl(ticket.path, ticket.token, file, {
+          contentType: file.type,
+          cacheControl: '31536000',
+        });
+      if (error) throw new Error('Kapak görseli Storage alanına yüklenemedi');
+
+      const url = await finalizeCoverUpload(ticket.path);
       setCoverUrl(url);
     } catch (err) {
       console.error(err);
-      alert('Yükleme başarısız');
+      alert(err instanceof Error ? err.message : 'Yükleme başarısız');
     } finally {
       setUploading(false);
     }
@@ -71,6 +99,8 @@ export default function AdminDashboardPage() {
       formData.append('description', description);
       formData.append('cover_url', coverUrl);
       formData.append('type', type);
+      formData.append('status', status);
+      formData.append('published_at', publishedAt);
 
       await createBook(formData);
       
@@ -78,6 +108,8 @@ export default function AdminDashboardPage() {
       setDescription('');
       setCoverUrl('');
       setType('book');
+      setStatus('draft');
+      setPublishedAt('');
       setShowCreateForm(false);
       await fetchBooks();
     } catch (err) {
@@ -148,7 +180,35 @@ export default function AdminDashboardPage() {
                 <option value="post">Blog Yazısı (Tek Metin)</option>
               </select>
             </div>
+            <div className="w-full sm:w-1/2">
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Yayın Durumu</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as PublicationStatus)}
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-neutral-100 focus:outline-none focus:border-pink-400 text-sm"
+              >
+                <option value="draft">Taslak</option>
+                <option value="published">Şimdi Yayınla</option>
+                <option value="scheduled">Planla</option>
+                <option value="archived">Arşivle</option>
+              </select>
+            </div>
           </div>
+
+          {(status === 'scheduled' || status === 'published') && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">
+                {status === 'scheduled' ? 'Planlanan Yayın Tarihi' : 'Yayın Tarihi (boşsa şimdi)'}
+              </label>
+              <input
+                type="datetime-local"
+                value={publishedAt}
+                onChange={(e) => setPublishedAt(e.target.value)}
+                required={status === 'scheduled'}
+                className="w-full sm:w-72 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-neutral-100 focus:outline-none focus:border-pink-400 text-sm"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-neutral-400 mb-1">Kapak Görseli</label>
@@ -163,12 +223,15 @@ export default function AdminDashboardPage() {
               <span className="text-neutral-500 text-xs text-center">VEYA</span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleFileUpload}
                 className="text-sm text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-neutral-800 file:text-neutral-300 hover:file:bg-neutral-700"
               />
               {uploading && <span className="text-sm text-pink-400 animate-pulse">Yükleniyor...</span>}
             </div>
+            <p className="mt-1.5 text-xs text-neutral-500">
+              JPEG, PNG veya WebP · en fazla {formatUploadLimit(COVER_IMAGE_MAX_BYTES)}
+            </p>
           </div>
 
           <div className="pt-2">
@@ -207,12 +270,15 @@ export default function AdminDashboardPage() {
                   <span className={`text-xs px-2.5 py-1 rounded-full ${book.type === 'post' ? 'bg-pink-400/10 text-pink-300 border border-pink-400/30' : 'bg-neutral-800 text-neutral-300 border border-neutral-700'}`}>
                     {book.type === 'post' ? 'Blog Yazısı' : 'Kitap'}
                   </span>
+                  <span className="ml-2 text-xs text-neutral-500">
+                    {book.status === 'published' ? 'Yayında' : book.status === 'scheduled' ? 'Planlı' : book.status === 'archived' ? 'Arşivde' : 'Taslak'}
+                  </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-neutral-400">
                   {formatDate(book.created_at)}
                 </td>
                 <td className="px-6 py-4 text-sm text-neutral-400">
-                  {book.type === 'book' ? (book as any).chapterCount || '0' : 'N/A'}
+                  {book.type === 'book' ? book.chapterCount || '0' : 'N/A'}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition">
@@ -255,9 +321,12 @@ export default function AdminDashboardPage() {
             
             {book.type === 'book' && (
               <p className="text-xs text-neutral-400">
-                Bölüm sayısı: {(book as any).chapterCount || '0'}
+                Bölüm sayısı: {book.chapterCount || '0'}
               </p>
             )}
+            <p className="text-xs text-[#F8D794]/70">
+              {book.status === 'published' ? 'Yayında' : book.status === 'scheduled' ? 'Planlı yayın' : book.status === 'archived' ? 'Arşivde' : 'Taslak'}
+            </p>
 
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-neutral-800/60">
               <Link href={`/admin/books/${book.id}`} className="text-sm text-pink-400 font-medium px-3 py-1 bg-pink-400/10 rounded-lg">
