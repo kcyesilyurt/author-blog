@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import ContinueReadingLink from '@/components/ContinueReadingLink';
 import type { PublicChapterListItem } from '@/lib/types';
 import type { Metadata } from 'next';
 import { PRIVATE_ROBOTS, SITE_NAME } from '@/lib/site';
@@ -107,10 +108,18 @@ export default async function BookPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="mt-12">
+      <div id="bolumler" className="mt-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold text-[#EFEACD] mb-6">
           {isPostType ? 'İçerik' : 'Bölümler'}
         </h2>
+
+        {chapters.length > 0 && (
+          <ContinueReadingLink
+            bookId={book.id}
+            bookSlug={book.slug}
+            chapters={chapters}
+          />
+        )}
         
         {chapters.length === 0 ? (
           <p className="text-[#EFEACD]/40">Henüz bölüm bulunmuyor.</p>

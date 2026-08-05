@@ -5,6 +5,12 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { enforceRateLimit, getPrimaryActorHash } from '@/lib/rate-limit';
 import {
+  COMMUNITY_PAGE_SIZE,
+  communityCursorFilter,
+  parseCommunityCursor,
+  toCommunityPage,
+} from '@/lib/community-pagination';
+import {
   assertReasonableLinkCount,
   isPubliclyVisible,
   requireText,
@@ -13,6 +19,8 @@ import {
 } from '@/lib/validation';
 import type {
   Comment,
+  CommunityCursor,
+  CommunityPage,
   CommunityProfile,
   PanoMessage,
   ReactionCount,
@@ -81,12 +89,14 @@ async function getViewer() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { user: null, isBanned: false, isAdmin: false };
+  if (!user) {
+    return { user: null, isBanned: false, isAdmin: false, publicProfile: null };
+  }
 
   const admin = createAdminClient();
   const { data: profile, error } = await admin
     .from('profiles')
-    .select('is_banned, is_admin')
+    .select('display_name, first_name, last_name, avatar_url, is_banned, is_admin')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -98,6 +108,13 @@ async function getViewer() {
     user,
     isBanned: profile.is_banned === true,
     isAdmin: profile.is_admin === true,
+    publicProfile: {
+      display_name: profile.display_name,
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      avatar_url: profile.avatar_url,
+      is_admin: profile.is_admin === true,
+    } satisfies CommunityProfile,
   };
 }
 
@@ -159,67 +176,100 @@ export async function getCommunityViewerState() {
   return { isAuthenticated: Boolean(user), isBanned, isAdmin };
 }
 
-export async function listChapterComments(chapterIdValue: string): Promise<Comment[]> {
+export async function listChapterComments(
+  chapterIdValue: string,
+  cursorValue?: CommunityCursor | null
+): Promise<CommunityPage<Comment>> {
   const chapter = await requirePublishedChapter(chapterIdValue);
+  const cursor = parseCommunityCursor(cursorValue);
   const admin = createAdminClient();
-  const { data, error } = await admin
+  let query = admin
     .from('comments')
     .select('id, chapter_id, user_id, guest_name, content, created_at')
-    .eq('chapter_id', chapter.id)
-    .order('created_at', { ascending: true });
+    .eq('chapter_id', chapter.id);
+
+  if (cursor) query = query.or(communityCursorFilter(cursor));
+
+  const { data, error } = await query
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(COMMUNITY_PAGE_SIZE + 1);
 
   if (error) throw new Error('Yorumlar yüklenemedi');
-  return attachPublicProfiles(data ?? []);
+  const page = toCommunityPage(data ?? []);
+  return { ...page, items: await attachPublicProfiles(page.items) };
 }
 
-export async function listPanoMessages(): Promise<PanoMessage[]> {
+export async function listPanoMessages(
+  cursorValue?: CommunityCursor | null
+): Promise<CommunityPage<PanoMessage>> {
+  const cursor = parseCommunityCursor(cursorValue);
   const admin = createAdminClient();
-  const { data, error } = await admin
+  let query = admin
     .from('pano_messages')
-    .select('id, user_id, guest_name, content, created_at')
+    .select('id, user_id, guest_name, content, created_at');
+
+  if (cursor) query = query.or(communityCursorFilter(cursor));
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(100);
+    .order('id', { ascending: false })
+    .limit(COMMUNITY_PAGE_SIZE + 1);
 
   if (error) throw new Error('Pano mesajları yüklenemedi');
-  return attachPublicProfiles(data ?? []);
+  const page = toCommunityPage(data ?? []);
+  return { ...page, items: await attachPublicProfiles(page.items) };
 }
 
-export async function submitComment(chapterIdValue: string, payload: CommunityPayload) {
+export async function submitComment(
+  chapterIdValue: string,
+  payload: CommunityPayload
+): Promise<Comment> {
   const content = validateCommunityPayload(payload);
   const chapter = await requirePublishedChapter(chapterIdValue);
-  const { user, isBanned } = await getViewer();
+  const { user, isBanned, publicProfile } = await getViewer();
 
   if (isBanned) throw new Error('Hesabınız askıya alındığı için yorum yapamazsınız');
   await enforceRateLimit('comment', user?.id ?? null);
 
   const admin = createAdminClient();
-  const { error } = await admin.from('comments').insert({
-    chapter_id: chapter.id,
-    content,
-    user_id: user?.id ?? null,
-    guest_name: user ? null : validateGuestName(payload.guestName),
-  });
+  const { data, error } = await admin
+    .from('comments')
+    .insert({
+      chapter_id: chapter.id,
+      content,
+      user_id: user?.id ?? null,
+      guest_name: user ? null : validateGuestName(payload.guestName),
+    })
+    .select('id, chapter_id, user_id, guest_name, content, created_at')
+    .single();
 
-  if (error) throw new Error('Yorum gönderilemedi');
+  if (error || !data) throw new Error('Yorum gönderilemedi');
   revalidatePath(`/books/${chapter.bookSlug}/${chapter.slug}`);
+  return { ...data, profiles: publicProfile };
 }
 
-export async function submitPanoMessage(payload: CommunityPayload) {
+export async function submitPanoMessage(payload: CommunityPayload): Promise<PanoMessage> {
   const content = validateCommunityPayload(payload);
-  const { user, isBanned } = await getViewer();
+  const { user, isBanned, publicProfile } = await getViewer();
 
   if (isBanned) throw new Error('Hesabınız askıya alındığı için panoya yazamazsınız');
   await enforceRateLimit('pano', user?.id ?? null);
 
   const admin = createAdminClient();
-  const { error } = await admin.from('pano_messages').insert({
-    content,
-    user_id: user?.id ?? null,
-    guest_name: user ? null : validateGuestName(payload.guestName),
-  });
+  const { data, error } = await admin
+    .from('pano_messages')
+    .insert({
+      content,
+      user_id: user?.id ?? null,
+      guest_name: user ? null : validateGuestName(payload.guestName),
+    })
+    .select('id, user_id, guest_name, content, created_at')
+    .single();
 
-  if (error) throw new Error('Pano mesajı gönderilemedi');
+  if (error || !data) throw new Error('Pano mesajı gönderilemedi');
   revalidatePath('/pano');
+  return { ...data, profiles: publicProfile };
 }
 
 export async function getReactionSummary(chapterIdValue: string): Promise<{

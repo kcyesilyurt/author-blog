@@ -55,6 +55,16 @@ export interface CommunityProfile {
   is_admin: boolean;
 }
 
+export interface CommunityCursor {
+  createdAt: string;
+  id: string;
+}
+
+export interface CommunityPage<T> {
+  items: T[];
+  nextCursor: CommunityCursor | null;
+}
+
 export interface Comment {
   id: string;
   chapter_id: string;

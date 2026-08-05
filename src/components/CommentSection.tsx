@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { timeAgo } from '@/lib/utils';
-import type { Comment } from '@/lib/types';
+import { appendUniqueById, prependUniqueById } from '@/lib/community-pagination';
+import type { Comment, CommunityCursor } from '@/lib/types';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import CommunityRoleTag from '@/components/CommunityRoleTag';
 import {
@@ -18,26 +19,83 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 export default function CommentSection({ chapterId }: { chapterId: string }) {
   const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const [nextCursor, setNextCursor] = useState<CommunityCursor | null>(null);
   const [newComment, setNewComment] = useState('');
   const [guestName, setGuestName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const initialLoadTargetRef = useRef<HTMLDivElement>(null);
+  const initialLoadPendingRef = useRef(false);
+  const loadMorePendingRef = useRef(false);
+  const currentChapterIdRef = useRef(chapterId);
 
-  const fetchComments = useCallback(async () => {
+  const fetchInitialComments = useCallback(async () => {
+    if (initialLoadPendingRef.current) return;
+
+    const requestedChapterId = chapterId;
+    initialLoadPendingRef.current = true;
+    setLoading(true);
+    setErrorMessage(null);
     try {
-      setComments(await listChapterComments(chapterId));
+      const page = await listChapterComments(requestedChapterId);
+      if (currentChapterIdRef.current !== requestedChapterId) return;
+      setComments(page.items);
+      setNextCursor(page.nextCursor);
+      setInitialized(true);
     } catch {
-      setErrorMessage('Yorumlar yüklenirken bir sorun oluştu.');
+      if (currentChapterIdRef.current === requestedChapterId) {
+        setErrorMessage('Yorumlar yüklenirken bir sorun oluştu.');
+      }
     } finally {
-      setLoading(false);
+      if (currentChapterIdRef.current === requestedChapterId) {
+        initialLoadPendingRef.current = false;
+        setLoading(false);
+      }
     }
   }, [chapterId]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => void fetchComments(), 0);
+    currentChapterIdRef.current = chapterId;
+    initialLoadPendingRef.current = false;
+    loadMorePendingRef.current = false;
+    let observer: IntersectionObserver | null = null;
+    const timeout = window.setTimeout(() => {
+      setComments([]);
+      setNextCursor(null);
+      setInitialized(false);
+      setLoading(false);
+      setLoadingMore(false);
+
+      const target = initialLoadTargetRef.current;
+      if (!target || !('IntersectionObserver' in window)) {
+        void fetchInitialComments();
+        return;
+      }
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            observer?.disconnect();
+            void fetchInitialComments();
+          }
+        },
+        { rootMargin: '400px 0px' }
+      );
+      observer.observe(target);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeout);
+      observer?.disconnect();
+    };
+  }, [chapterId, fetchInitialComments]);
+
+  useEffect(() => {
     void getCommunityViewerState()
       .then((viewer) => {
         setIsAuthenticated(viewer.isAuthenticated);
@@ -47,8 +105,31 @@ export default function CommentSection({ chapterId }: { chapterId: string }) {
         setIsAuthenticated(false);
         setIsBanned(false);
       });
-    return () => window.clearTimeout(timeout);
-  }, [fetchComments]);
+  }, []);
+
+  const handleLoadMore = async () => {
+    if (!nextCursor || loadMorePendingRef.current) return;
+
+    const requestedChapterId = chapterId;
+    loadMorePendingRef.current = true;
+    setLoadingMore(true);
+    setErrorMessage(null);
+    try {
+      const page = await listChapterComments(requestedChapterId, nextCursor);
+      if (currentChapterIdRef.current !== requestedChapterId) return;
+      setComments((current) => appendUniqueById(current, page.items));
+      setNextCursor(page.nextCursor);
+    } catch (error) {
+      if (currentChapterIdRef.current === requestedChapterId) {
+        setErrorMessage(getErrorMessage(error, 'Daha fazla yorum yüklenemedi.'));
+      }
+    } finally {
+      if (currentChapterIdRef.current === requestedChapterId) {
+        loadMorePendingRef.current = false;
+        setLoadingMore(false);
+      }
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -59,14 +140,15 @@ export default function CommentSection({ chapterId }: { chapterId: string }) {
 
     try {
       const formData = new FormData(event.currentTarget);
-      await submitComment(chapterId, {
+      const createdComment = await submitComment(chapterId, {
         content: newComment,
         guestName: isAuthenticated ? undefined : guestName,
         website: String(formData.get('website') ?? ''),
       });
       setNewComment('');
       if (!isAuthenticated) setGuestName('');
-      await fetchComments();
+      setComments((current) => prependUniqueById(current, createdComment));
+      setInitialized(true);
     } catch (error) {
       setErrorMessage(getErrorMessage(error, 'Yorum gönderilemedi.'));
     } finally {
@@ -92,27 +174,34 @@ export default function CommentSection({ chapterId }: { chapterId: string }) {
 
   return (
     <section className="mt-16 border-t border-[#64090C]/30 pt-8 font-sans">
-      <h3 className="text-xl font-semibold text-[#EFEACD] mb-6">
-        Yorumlar <span className="text-[#EFEACD]/40 font-normal">({comments.length})</span>
+      <h3 className="mb-6 text-xl font-semibold text-[#EFEACD]">
+        Yorumlar{' '}
+        {initialized && (
+          <span className="font-normal text-[#EFEACD]/40">
+            ({comments.length}{nextCursor ? '+' : ''})
+          </span>
+        )}
       </h3>
 
+      <div ref={initialLoadTargetRef} className="h-px" aria-hidden="true" />
+
       {errorMessage && (
-        <div className="mb-6 bg-red-950/40 border border-red-800/60 rounded-xl p-4 text-red-300 text-sm text-center">
+        <div className="mb-6 rounded-xl border border-red-800/60 bg-red-950/40 p-4 text-center text-sm text-red-300">
           {errorMessage}
         </div>
       )}
 
       <div className="space-y-4">
         {loading ? (
-          <p className="text-[#EFEACD]/40 text-sm italic">Yorumlar yükleniyor...</p>
-        ) : comments.length > 0 ? (
+          <p className="text-sm italic text-[#EFEACD]/40">Yorumlar yükleniyor...</p>
+        ) : initialized && comments.length > 0 ? (
           comments.map((comment) => (
-            <div key={comment.id} className="bg-[#64090C]/10 rounded-xl p-5 border-l-2 border-[#F8D794]/30 border-r border-t border-b border-[#64090C]/30">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <div key={comment.id} className="rounded-xl border border-[#64090C]/30 border-l-2 border-l-[#F8D794]/30 bg-[#64090C]/10 p-5">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
                 {comment.profiles?.avatar_url && (
-                  <Image src={comment.profiles.avatar_url} alt="" width={24} height={24} className="w-6 h-6 rounded-full object-cover border border-[#64090C]/40" />
+                  <Image src={comment.profiles.avatar_url} alt="" width={24} height={24} className="h-6 w-6 rounded-full border border-[#64090C]/40 object-cover" />
                 )}
-                <span className="font-medium text-[#EFEACD] inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 font-medium text-[#EFEACD]">
                   {getDisplayName(comment)}
                   {comment.profiles?.is_admin && <VerifiedBadge />}
                 </span>
@@ -123,20 +212,41 @@ export default function CommentSection({ chapterId }: { chapterId: string }) {
                 <span className="text-[#EFEACD]/30">•</span>
                 <span className="text-xs text-[#EFEACD]/40">{timeAgo(comment.created_at)}</span>
               </div>
-              <p className="text-[#EFEACD]/70 text-base leading-relaxed whitespace-pre-wrap break-words">{comment.content}</p>
+              <p className="whitespace-pre-wrap break-words text-base leading-relaxed text-[#EFEACD]/70">{comment.content}</p>
             </div>
           ))
-        ) : (
-          <p className="text-[#EFEACD]/40 text-sm italic">Henüz yorum yapılmamış. İlk yorumu siz yapın!</p>
-        )}
+        ) : initialized ? (
+          <p className="text-sm italic text-[#EFEACD]/40">Henüz yorum yapılmamış. İlk yorumu siz yapın!</p>
+        ) : errorMessage ? (
+          <button
+            type="button"
+            onClick={() => void fetchInitialComments()}
+            className="min-h-12 rounded-lg border border-[#F8D794]/25 px-5 py-3 text-base text-[#F8D794] hover:bg-[#F8D794]/10"
+          >
+            Tekrar Dene
+          </button>
+        ) : null}
       </div>
 
+      {nextCursor && !loading && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => void handleLoadMore()}
+            disabled={loadingMore}
+            className="min-h-12 w-full rounded-lg border border-[#F8D794]/25 px-6 py-3 text-base font-medium text-[#F8D794] transition hover:bg-[#F8D794]/10 disabled:opacity-50 sm:w-auto"
+          >
+            {loadingMore ? 'Yükleniyor...' : 'Daha Fazla Yükle'}
+          </button>
+        </div>
+      )}
+
       {isBanned ? (
-        <div className="mt-8 bg-red-950/30 border border-red-800/50 rounded-xl p-4 text-center text-red-300 text-sm">
+        <div className="mt-8 rounded-xl border border-red-800/50 bg-red-950/30 p-4 text-center text-sm text-red-300">
           Hesabınız askıya alındığı için yorum yapamazsınız.
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="mt-8 glass-card bg-[#64090C]/10 rounded-xl p-6 border border-[#64090C]/30">
+        <form onSubmit={handleSubmit} className="glass-card mt-8 rounded-xl border border-[#64090C]/30 bg-[#64090C]/10 p-6">
           <input
             type="text"
             name="website"
@@ -146,31 +256,41 @@ export default function CommentSection({ chapterId }: { chapterId: string }) {
             aria-hidden="true"
           />
           {!isAuthenticated && (
-            <input
-              type="text"
-              placeholder="İsminiz (gerekli)"
-              value={guestName}
-              onChange={(event) => setGuestName(event.target.value)}
-              minLength={2}
-              maxLength={50}
-              className="mb-4 bg-[#64090C]/15 border border-[#64090C]/40 focus:border-[#9C0512] focus:outline-none rounded-lg px-4 py-2.5 w-full text-[#EFEACD] placeholder:text-[#EFEACD]/30 transition-colors font-sans text-sm"
-              required
-            />
+            <div className="mb-4">
+              <label htmlFor="comment-guest-name" className="mb-2 block text-base font-medium text-[#EFEACD]/70">
+                İsminiz
+              </label>
+              <input
+                id="comment-guest-name"
+                type="text"
+                placeholder="İsminiz (gerekli)"
+                value={guestName}
+                onChange={(event) => setGuestName(event.target.value)}
+                minLength={2}
+                maxLength={50}
+                className="min-h-12 w-full rounded-lg border border-[#64090C]/30 bg-[#64090C]/20 px-4 py-3 font-sans text-base text-[#EFEACD] placeholder:text-[#EFEACD]/30 transition-colors focus:border-[#F8D794] focus:outline-none"
+                required
+              />
+            </div>
           )}
+          <label htmlFor="comment-content" className="mb-2 block text-base font-medium text-[#EFEACD]/70">
+            Yorumunuz
+          </label>
           <textarea
+            id="comment-content"
             placeholder="Düşüncelerinizi paylaşın..."
             value={newComment}
             onChange={(event) => setNewComment(event.target.value)}
             maxLength={2000}
-            className="bg-[#64090C]/15 border border-[#64090C]/40 focus:border-[#9C0512] focus:outline-none rounded-lg px-4 py-2.5 w-full text-[#EFEACD] placeholder:text-[#EFEACD]/30 transition-colors font-sans text-sm min-h-[120px] resize-y"
+            className="min-h-[120px] w-full resize-y rounded-lg border border-[#64090C]/40 bg-[#64090C]/15 px-4 py-3 font-sans text-base text-[#EFEACD] placeholder:text-[#EFEACD]/30 transition-colors focus:border-[#9C0512] focus:outline-none"
             required
           />
-          <div className="flex items-center justify-between gap-4 mt-3">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-[#EFEACD]/30">{newComment.length}/2000</span>
             <button
               type="submit"
               disabled={submitting || !newComment.trim() || (!isAuthenticated && !guestName.trim())}
-              className="bg-[#9C0512] hover:bg-[#7a040e] text-[#F8D794] font-medium rounded-lg px-5 py-2.5 text-sm transition-colors disabled:opacity-50"
+              className="min-h-12 w-full rounded-lg bg-[#9C0512] px-5 py-3 text-base font-medium text-[#F8D794] transition-colors hover:bg-[#7a040e] disabled:opacity-50 sm:w-auto"
             >
               {submitting ? 'Gönderiliyor...' : 'Yorum Gönder'}
             </button>

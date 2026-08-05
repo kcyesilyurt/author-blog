@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { timeAgo } from '@/lib/utils';
-import type { PanoMessage } from '@/lib/types';
+import { appendUniqueById, prependUniqueById } from '@/lib/community-pagination';
+import type { CommunityCursor, PanoMessage } from '@/lib/types';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import CommunityRoleTag from '@/components/CommunityRoleTag';
 import { deletePanoMessage } from '@/app/admin/actions';
@@ -20,6 +21,8 @@ function getErrorMessage(error: unknown, fallback: string) {
 export default function PanoBoard() {
   const [messages, setMessages] = useState<PanoMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<CommunityCursor | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [guestName, setGuestName] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -27,16 +30,37 @@ export default function PanoBoard() {
   const [isBanned, setIsBanned] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const loadMorePendingRef = useRef(false);
 
   const fetchMessages = useCallback(async () => {
     try {
-      setMessages(await listPanoMessages());
+      const page = await listPanoMessages();
+      setMessages(page.items);
+      setNextCursor(page.nextCursor);
     } catch {
       setErrorMessage('Pano mesajları yüklenemedi.');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleLoadMore = async () => {
+    if (!nextCursor || loadMorePendingRef.current) return;
+
+    loadMorePendingRef.current = true;
+    setLoadingMore(true);
+    setErrorMessage(null);
+    try {
+      const page = await listPanoMessages(nextCursor);
+      setMessages((current) => appendUniqueById(current, page.items));
+      setNextCursor(page.nextCursor);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, 'Daha fazla mesaj yüklenemedi.'));
+    } finally {
+      loadMorePendingRef.current = false;
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void fetchMessages(), 0);
@@ -72,14 +96,14 @@ export default function PanoBoard() {
     setErrorMessage(null);
     try {
       const formData = new FormData(event.currentTarget);
-      await submitPanoMessage({
+      const createdMessage = await submitPanoMessage({
         content: newMessage,
         guestName: isAuthenticated ? undefined : guestName,
         website: String(formData.get('website') ?? ''),
       });
       setNewMessage('');
       if (!isAuthenticated) setGuestName('');
-      await fetchMessages();
+      setMessages((current) => prependUniqueById(current, createdMessage));
     } catch (error) {
       setErrorMessage(getErrorMessage(error, 'Mesaj gönderilemedi.'));
     } finally {
@@ -126,31 +150,41 @@ export default function PanoBoard() {
             aria-hidden="true"
           />
           {!isAuthenticated && (
-            <input
-              type="text"
-              placeholder="İsminiz (gerekli)"
-              value={guestName}
-              onChange={(event) => setGuestName(event.target.value)}
-              minLength={2}
-              maxLength={50}
-              className="mb-4 bg-[#64090C]/15 border border-[#64090C]/40 focus:border-[#9C0512] focus:outline-none rounded-lg px-4 py-2.5 w-full text-[#EFEACD] placeholder:text-[#EFEACD]/30 transition-colors font-sans text-sm"
-              required
-            />
+            <div className="mb-4">
+              <label htmlFor="pano-guest-name" className="mb-2 block text-base font-medium text-[#EFEACD]/70">
+                İsminiz
+              </label>
+              <input
+                id="pano-guest-name"
+                type="text"
+                placeholder="İsminiz (gerekli)"
+                value={guestName}
+                onChange={(event) => setGuestName(event.target.value)}
+                minLength={2}
+                maxLength={50}
+                className="min-h-12 w-full rounded-lg border border-[#64090C]/40 bg-[#64090C]/15 px-4 py-3 font-sans text-base text-[#EFEACD] placeholder:text-[#EFEACD]/30 transition-colors focus:border-[#9C0512] focus:outline-none"
+                required
+              />
+            </div>
           )}
+          <label htmlFor="pano-message" className="mb-2 block text-base font-medium text-[#EFEACD]/70">
+            Mesajınız
+          </label>
           <textarea
+            id="pano-message"
             placeholder="Panoya bir mesaj bırakın..."
             value={newMessage}
             onChange={(event) => setNewMessage(event.target.value)}
             maxLength={2000}
-            className="bg-[#64090C]/15 border border-[#64090C]/40 focus:border-[#9C0512] focus:outline-none rounded-lg px-4 py-3 w-full text-[#EFEACD] placeholder:text-[#EFEACD]/30 transition-colors font-sans text-sm min-h-[100px] resize-y"
+            className="min-h-[120px] w-full resize-y rounded-lg border border-[#64090C]/40 bg-[#64090C]/15 px-4 py-3 font-sans text-base text-[#EFEACD] placeholder:text-[#EFEACD]/30 transition-colors focus:border-[#9C0512] focus:outline-none"
             required
           />
-          <div className="flex items-center justify-between gap-4 mt-3">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-[#EFEACD]/30">{newMessage.length}/2000</span>
             <button
               type="submit"
               disabled={submitting || !newMessage.trim() || (!isAuthenticated && !guestName.trim())}
-              className="bg-[#9C0512] hover:bg-[#7a040e] text-[#F8D794] font-medium rounded-lg px-6 py-2.5 text-sm transition-colors disabled:opacity-50"
+              className="min-h-12 w-full rounded-lg bg-[#9C0512] px-6 py-3 text-base font-medium text-[#F8D794] transition-colors hover:bg-[#7a040e] disabled:opacity-50 sm:w-auto"
             >
               {submitting ? 'Gönderiliyor...' : 'Gönder'}
             </button>
@@ -184,7 +218,7 @@ export default function PanoBoard() {
                     <button
                       type="button"
                       onClick={() => handleDelete(message.id)}
-                      className="text-xs text-red-400 hover:text-red-300"
+                      className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg px-3 text-sm text-red-400 hover:bg-red-950/30 hover:text-red-300"
                     >
                       Sil
                     </button>
@@ -198,6 +232,19 @@ export default function PanoBoard() {
           <p className="text-[#EFEACD]/40 text-sm italic text-center py-8">Henüz pano mesajı yok. İlk mesajı siz bırakın!</p>
         )}
       </div>
+
+      {nextCursor && !loading && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => void handleLoadMore()}
+            disabled={loadingMore}
+            className="min-h-12 w-full rounded-lg border border-[#F8D794]/25 px-6 py-3 text-base font-medium text-[#F8D794] transition hover:bg-[#F8D794]/10 disabled:opacity-50 sm:w-auto"
+          >
+            {loadingMore ? 'Yükleniyor...' : 'Daha Fazla Yükle'}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

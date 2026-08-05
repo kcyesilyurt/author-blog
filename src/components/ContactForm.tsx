@@ -8,7 +8,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 const inputClassName =
-  'w-full rounded-lg border border-[#64090C]/40 bg-[#64090C]/15 px-4 py-3 text-sm text-[#EFEACD] placeholder:text-[#EFEACD]/25 focus:border-[#F8D794]/60 focus:outline-none';
+  'min-h-12 w-full rounded-lg border border-[#64090C]/40 bg-[#64090C]/15 px-4 py-3 text-base text-[#EFEACD] placeholder:text-[#EFEACD]/25 focus:border-[#F8D794]/60 focus:outline-none';
 
 export default function ContactForm() {
   const [submitting, setSubmitting] = useState(false);
@@ -147,11 +147,11 @@ export default function ContactForm() {
         </div>
       )}
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex">
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-[#9C0512] px-7 py-3 text-sm font-medium text-[#F8D794] hover:bg-[#7a040e] disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-12 w-full rounded-lg bg-[#9C0512] px-7 py-3 text-base font-medium text-[#F8D794] hover:bg-[#7a040e] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:w-auto"
         >
           {submitting ? 'Gönderiliyor...' : 'Mesajı Gönder'}
         </button>

@@ -85,7 +85,7 @@ export default function ReactionPicker({ chapterId }: { chapterId: string }) {
               disabled={pendingType !== null}
               aria-label={label}
               aria-pressed={isActive}
-              className={`group flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 text-sm border disabled:opacity-60 ${
+              className={`group flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm transition-all duration-200 disabled:opacity-60 ${
                 isActive
                   ? 'bg-[#9C0512]/20 border-[#F8D794]/50 text-[#F8D794]'
                   : 'bg-[#64090C]/10 border-[#64090C]/40 hover:border-[#F8D794]/30 text-[#EFEACD]/60'

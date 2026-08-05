@@ -8,7 +8,7 @@ export default function ChapterNav({ bookSlug, chapters, currentChapterId }: { b
   const next = currentIndex !== -1 && currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 
   return (
-    <div className="border-t border-neutral-800 pt-8 mt-12 flex flex-col sm:flex-row items-stretch justify-between gap-4">
+    <div className="mt-12 hidden items-stretch justify-between gap-4 border-t border-neutral-800 pt-8 md:flex">
       {prev ? (
         <Link href={`/books/${bookSlug}/${prev.slug}`} className="bg-neutral-900 hover:bg-neutral-800 rounded-lg px-4 py-5 sm:px-5 sm:py-4 transition-colors flex-1 group border border-neutral-800 hover:border-pink-400/30">
           <div className="text-xs text-neutral-500 uppercase tracking-wider">← Önceki</div>

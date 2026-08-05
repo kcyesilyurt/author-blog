@@ -128,6 +128,8 @@ export default function ProfilePage() {
 
         {message && (
           <div
+            role={message.type === 'error' ? 'alert' : 'status'}
+            aria-live="polite"
             className={`mb-6 p-4 rounded-xl text-sm text-center border ${
               message.type === 'success'
                 ? 'bg-green-900/40 border-green-800/60 text-green-300'
@@ -157,9 +159,13 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <label className="cursor-pointer bg-[#64090C]/20 hover:bg-[#64090C]/30 border border-[#64090C]/30 text-xs font-medium text-[#EFEACD]/80 px-4 py-2 rounded-lg transition-colors">
+            <label
+              htmlFor="profile-avatar"
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-[#64090C]/30 bg-[#64090C]/20 px-4 py-2 text-sm font-medium text-[#EFEACD]/80 transition-colors hover:bg-[#64090C]/30"
+            >
               {uploadingAvatar ? 'Fotoğraf Yükleniyor...' : 'Fotoğraf Değiştir'}
               <input
+                id="profile-avatar"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={handleAvatarUpload}
@@ -175,37 +181,52 @@ export default function ProfilePage() {
           {/* User Details */}
           <div className="space-y-4 pt-2">
             <div>
-              <label className="block text-xs font-medium text-[#EFEACD]/60 mb-1.5">E-posta Adresi</label>
+              <label htmlFor="profile-email" className="mb-2 block text-sm font-medium text-[#EFEACD]/60">
+                E-posta Adresi
+              </label>
               <input
+                id="profile-email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 disabled
                 value={user?.email || ''}
-                className="bg-[#64090C]/10 border border-[#64090C]/30 text-[#EFEACD]/40 rounded-lg px-4 py-2.5 w-full text-sm cursor-not-allowed"
+                className="min-h-12 w-full cursor-not-allowed rounded-lg border border-[#64090C]/30 bg-[#64090C]/10 px-4 py-3 text-base text-[#EFEACD]/40"
               />
             </div>
 
-            <div className="flex gap-4">
-              <div className="w-1/2">
-                <label className="block text-xs font-medium text-[#EFEACD]/60 mb-1.5">Ad</label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="profile-first-name" className="mb-2 block text-sm font-medium text-[#EFEACD]/60">
+                  Ad
+                </label>
                 <input
+                  id="profile-first-name"
+                  name="firstName"
                   type="text"
+                  autoComplete="given-name"
                   required
                   placeholder="Adınız"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="bg-[#64090C]/20 border border-[#64090C]/30 focus:border-[#F8D794] focus:outline-none rounded-lg px-4 py-2.5 w-full text-[#EFEACD] text-sm"
+                  className="min-h-12 w-full rounded-lg border border-[#64090C]/30 bg-[#64090C]/20 px-4 py-3 text-base text-[#EFEACD] focus:border-[#F8D794] focus:outline-none"
                 />
               </div>
 
-              <div className="w-1/2">
-                <label className="block text-xs font-medium text-[#EFEACD]/60 mb-1.5">Soyad</label>
+              <div>
+                <label htmlFor="profile-last-name" className="mb-2 block text-sm font-medium text-[#EFEACD]/60">
+                  Soyad
+                </label>
                 <input
+                  id="profile-last-name"
+                  name="lastName"
                   type="text"
+                  autoComplete="family-name"
                   required
                   placeholder="Soyadınız"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="bg-[#64090C]/20 border border-[#64090C]/30 focus:border-[#F8D794] focus:outline-none rounded-lg px-4 py-2.5 w-full text-[#EFEACD] text-sm"
+                  className="min-h-12 w-full rounded-lg border border-[#64090C]/30 bg-[#64090C]/20 px-4 py-3 text-base text-[#EFEACD] focus:border-[#F8D794] focus:outline-none"
                 />
               </div>
             </div>
@@ -215,7 +236,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving || uploadingAvatar}
-              className="w-full bg-[#9C0512] hover:bg-[#9C0512]/80 text-[#EFEACD] font-semibold rounded-lg py-3 text-sm transition-colors disabled:opacity-50"
+              className="min-h-12 w-full rounded-lg bg-[#9C0512] px-4 py-3 text-base font-semibold text-[#EFEACD] transition-colors hover:bg-[#9C0512]/80 disabled:opacity-50"
             >
               {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
             </button>

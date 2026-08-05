@@ -4,10 +4,10 @@ export default function ReaderLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-black">
-      <main className="max-w-3xl mx-auto py-12 px-5 sm:px-6 md:px-8 lg:px-12 bg-black">
+    <div className="bg-black">
+      <article className="mx-auto max-w-[680px] bg-black px-4 py-8 sm:px-6 sm:py-12">
         {children}
-      </main>
+      </article>
     </div>
   );
 }

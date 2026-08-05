@@ -133,6 +133,15 @@
 }
 
 /* ===== READER CONTENT ===== */
+.reader-content {
+  color: rgba(239, 234, 205, 0.86);
+  font-family: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  font-size: 1.125rem;
+  line-height: 1.85;
+  overflow-wrap: break-word;
+  text-rendering: optimizeLegibility;
+}
+
 .reader-content h1 {
   font-size: 2rem;
   font-weight: 700;
@@ -169,8 +178,8 @@
 }
 
 .reader-content p {
-  margin-bottom: 1.25rem;
-  line-height: 1.8;
+  margin-bottom: 1.35rem;
+  line-height: 1.85;
 }
 
 .reader-content a {
@@ -225,7 +234,7 @@
   padding-left: 1rem;
   margin-left: 0;
   margin-bottom: 1.25rem;
-  color: rgba(239, 234, 205, 0.6);
+  color: rgba(239, 234, 205, 0.72);
   font-style: italic;
 }
 
@@ -243,7 +252,7 @@
 
 .reader-content li {
   margin-bottom: 0.375rem;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 .reader-content hr {

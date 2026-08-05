@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ReaderLayout from '@/components/ReaderLayout';
+import ReaderExperience from '@/components/ReaderExperience';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ChapterNav from '@/components/ChapterNav';
 import ReactionPicker from '@/components/ReactionPicker';
@@ -107,14 +108,25 @@ export default async function ChapterPage({ params }: Props) {
         </nav>
       </div>
 
-      <ReaderLayout>
-        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-8 font-sans">
-          {currentChapter.title}
-        </h1>
-        <MarkdownRenderer content={currentChapter.content} />
-      </ReaderLayout>
+      <ReaderExperience
+        key={currentChapter.id}
+        book={{ id: book.id, slug: book.slug, title: book.title }}
+        chapter={{
+          id: currentChapter.id,
+          slug: currentChapter.slug,
+          title: currentChapter.title,
+        }}
+        chapters={chapters}
+      >
+        <ReaderLayout>
+          <h1 className="mb-8 font-sans text-3xl font-bold text-white sm:text-4xl">
+            {currentChapter.title}
+          </h1>
+          <MarkdownRenderer content={currentChapter.content} />
+        </ReaderLayout>
+      </ReaderExperience>
 
-      <div className="max-w-[680px] mx-auto px-4 sm:px-6 pb-16 space-y-12">
+      <div className="mx-auto max-w-[680px] space-y-12 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:pb-16">
         <ReactionPicker chapterId={currentChapter.id} />
         <ChapterNav 
           bookSlug={slug} 
