@@ -68,8 +68,13 @@ test('contact fields accept normal email and HTTPS links only', () => {
 test('Turkish work titles keep stable ASCII slugs', () => {
   assert.equal(slugify('Kayıp Liman'), 'kayip-liman');
   assert.equal(
+    slugify('Hâinin Mührü 1 - Kayıp Liman'),
+    'hainin-muhru-1-kayip-liman'
+  );
+  assert.equal(
     slugify('Tanrı Kuyusu’nun Kemikleri'),
     'tanri-kuyusunun-kemikleri'
   );
   assert.equal(slugify('Kül ve Keder Çağı'), 'kul-ve-keder-cagi');
+  assert.equal(slugify('  Bir -- Başka ___ Eser  '), 'bir-baska-eser');
 });

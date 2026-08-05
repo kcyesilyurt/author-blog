@@ -3,13 +3,10 @@ export function slugify(text: string): string {
     .toLocaleLowerCase('tr-TR')
     .trim()
     .replace(/ı/g, 'i')
-    .replace(/ğ/g, 'g')
-    .replace(/ü/g, 'u')
-    .replace(/ş/g, 's')
-    .replace(/ö/g, 'o')
-    .replace(/ç/g, 'c')
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/['’‘`´]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
 

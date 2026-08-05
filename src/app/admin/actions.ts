@@ -10,6 +10,7 @@ import {
   validateStoredImage,
 } from '@/lib/image-upload';
 import { COVER_IMAGE_MAX_BYTES } from '@/lib/upload-limits';
+import { slugify } from '@/lib/utils';
 import {
   optionalText,
   parsePublicationInput,
@@ -17,6 +18,10 @@ import {
   requireText,
   requireUuid,
 } from '@/lib/validation';
+
+export type CreateBookResult =
+  | { success: true }
+  | { success: false; error: string };
 
 function parseContentType(value: FormDataEntryValue | null): 'book' | 'post' {
   if (value !== 'book' && value !== 'post') throw new Error('İçerik türü geçersiz');
@@ -85,32 +90,50 @@ async function assertTargetCanBeManaged(actorId: string, targetIdValue: string) 
   return targetId;
 }
 
-export async function createBook(formData: FormData) {
+export async function createBook(formData: FormData): Promise<CreateBookResult> {
   await requireAdmin();
   const admin = createAdminClient();
-  const title = requireText(formData.get('title'), { fieldName: 'Başlık', min: 1, max: 160 });
-  const slug = requireSlug(formData.get('slug'));
-  const description = optionalText(formData.get('description'), 1000);
-  const coverUrl = parseCoverUrl(formData.get('cover_url'));
-  const type = parseContentType(formData.get('type'));
-  const publication = parsePublicationInput(
-    formData.get('status') ?? 'draft',
-    formData.get('published_at')
-  );
 
-  const { error } = await admin.from('books').insert({
-    title,
-    slug,
-    description,
-    cover_url: coverUrl,
-    type,
-    status: publication.status,
-    published_at: publication.publishedAt,
-  });
+  let bookInput;
+  try {
+    const title = requireText(formData.get('title'), {
+      fieldName: 'Başlık',
+      min: 1,
+      max: 160,
+    });
+    const publication = parsePublicationInput(
+      formData.get('status') ?? 'draft',
+      formData.get('published_at')
+    );
 
-  if (error) throw new Error(error.code === '23505' ? 'Bu URL adresi zaten kullanılıyor' : error.message);
+    bookInput = {
+      title,
+      slug: requireSlug(slugify(title)),
+      description: optionalText(formData.get('description'), 1000),
+      cover_url: parseCoverUrl(formData.get('cover_url')),
+      type: parseContentType(formData.get('type')),
+      status: publication.status,
+      published_at: publication.publishedAt,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Eser bilgileri geçersiz',
+    };
+  }
+
+  const { error } = await admin.from('books').insert(bookInput);
+
+  if (error) {
+    return {
+      success: false,
+      error: error.code === '23505' ? 'Bu başlığa ait URL adresi zaten kullanılıyor' : 'Eser kaydedilemedi',
+    };
+  }
+
   revalidatePath('/admin');
   revalidatePath('/');
+  return { success: true };
 }
 
 export async function updateBook(idValue: string, formData: FormData) {

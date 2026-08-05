@@ -30,6 +30,7 @@ export default function AdminDashboardPage() {
   const [publishedAt, setPublishedAt] = useState('');
   const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
   const fetchBooks = useCallback(async () => {
@@ -92,17 +93,21 @@ export default function AdminDashboardPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
+    setCreateError(null);
     try {
       const formData = new FormData();
       formData.append('title', title);
-      formData.append('slug', slugify(title));
       formData.append('description', description);
       formData.append('cover_url', coverUrl);
       formData.append('type', type);
       formData.append('status', status);
       formData.append('published_at', publishedAt);
 
-      await createBook(formData);
+      const result = await createBook(formData);
+      if (!result.success) {
+        setCreateError(result.error);
+        return;
+      }
       
       setTitle('');
       setDescription('');
@@ -112,9 +117,8 @@ export default function AdminDashboardPage() {
       setPublishedAt('');
       setShowCreateForm(false);
       await fetchBooks();
-    } catch (err) {
-      console.error(err);
-      alert('Eser oluşturulamadı');
+    } catch {
+      setCreateError('Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setCreating(false);
     }
@@ -155,6 +159,11 @@ export default function AdminDashboardPage() {
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-neutral-100 focus:outline-none focus:border-pink-400 text-sm"
             />
+            {title && (
+              <p className="mt-1.5 text-xs text-neutral-500">
+                Oluşturulacak adres: <code>/books/{slugify(title) || 'gecerli-bir-baslik-girin'}</code>
+              </p>
+            )}
           </div>
 
           <div>
@@ -235,6 +244,11 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="pt-2">
+            {createError && (
+              <p role="alert" aria-live="polite" className="mb-3 text-sm text-red-400">
+                {createError}
+              </p>
+            )}
             <button
               type="submit"
               disabled={creating || uploading}
