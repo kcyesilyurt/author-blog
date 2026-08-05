@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Chapter } from '@/lib/types';
+import type { PublicChapterListItem } from '@/lib/types';
 
-export default function ChapterNav({ bookSlug, chapters, currentChapterId }: { bookSlug: string; chapters: Chapter[]; currentChapterId: string }) {
+export default function ChapterNav({ bookSlug, chapters, currentChapterId }: { bookSlug: string; chapters: PublicChapterListItem[]; currentChapterId: string }) {
   const sorted = [...chapters].sort((a, b) => a.chapter_order - b.chapter_order);
   const currentIndex = sorted.findIndex(c => c.id === currentChapterId);
   const prev = currentIndex > 0 ? sorted[currentIndex - 1] : null;

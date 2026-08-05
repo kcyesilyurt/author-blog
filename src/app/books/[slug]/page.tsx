@@ -1,25 +1,29 @@
-import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Chapter } from '@/lib/types';
+import type { PublicChapterListItem } from '@/lib/types';
 import type { Metadata } from 'next';
 import { PRIVATE_ROBOTS, SITE_NAME } from '@/lib/site';
+import {
+  getPublicBook,
+  getPublicChapterList,
+  getPublicWorks,
+} from '@/lib/publications';
+
+export const revalidate = 60;
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
+export async function generateStaticParams() {
+  const works = await getPublicWorks();
+  return works.map((work) => ({ slug: work.slug }));
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { data: book } = await supabase
-    .from('books')
-    .select('title, description, cover_url')
-    .eq('slug', slug)
-    .in('status', ['published', 'scheduled'])
-    .lte('published_at', new Date().toISOString())
-    .maybeSingle();
+  const book = await getPublicBook(slug);
 
   if (!book) {
     return {
@@ -60,28 +64,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function BookPage({ params }: Props) {
   const { slug } = await params;
-  const supabase = await createClient();
-  const now = new Date().toISOString();
-
-  const { data: book } = await supabase
-    .from('books')
-    .select('*')
-    .eq('slug', slug)
-    .in('status', ['published', 'scheduled'])
-    .lte('published_at', now)
-    .maybeSingle();
+  const book = await getPublicBook(slug);
 
   if (!book) {
     notFound();
   }
 
-  const { data: chapters } = await supabase
-    .from('chapters')
-    .select('*')
-    .eq('book_id', book.id)
-    .in('status', ['published', 'scheduled'])
-    .lte('published_at', now)
-    .order('chapter_order', { ascending: true });
+  const chapters = await getPublicChapterList(book.id);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('tr-TR', {
@@ -123,11 +112,11 @@ export default async function BookPage({ params }: Props) {
           {isPostType ? 'İçerik' : 'Bölümler'}
         </h2>
         
-        {(!chapters || chapters.length === 0) ? (
+        {chapters.length === 0 ? (
           <p className="text-[#EFEACD]/40">Henüz bölüm bulunmuyor.</p>
         ) : (
           <div className="space-y-3">
-            {chapters.map((chapter: Chapter) => (
+            {chapters.map((chapter: PublicChapterListItem) => (
               <Link 
                 key={chapter.id} 
                 href={`/books/${slug}/${chapter.slug}`}

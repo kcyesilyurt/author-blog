@@ -1,7 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Chapter } from '@/lib/types';
 import ReaderLayout from '@/components/ReaderLayout';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ChapterNav from '@/components/ChapterNav';
@@ -9,23 +7,36 @@ import ReactionPicker from '@/components/ReactionPicker';
 import CommentSection from '@/components/CommentSection';
 import type { Metadata } from 'next';
 import { PRIVATE_ROBOTS, SITE_NAME } from '@/lib/site';
+import {
+  getPublicBook,
+  getPublicChapter,
+  getPublicChapterList,
+  getPublicChapterRoutes,
+  getPublicWorks,
+} from '@/lib/publications';
+
+export const revalidate = 60;
 
 type Props = {
   params: Promise<{ slug: string; chapterSlug: string }>;
 };
 
+export async function generateStaticParams() {
+  const [works, chapters] = await Promise.all([
+    getPublicWorks(),
+    getPublicChapterRoutes(),
+  ]);
+  const workSlugs = new Map(works.map((work) => [work.id, work.slug]));
+
+  return chapters.flatMap((chapter) => {
+    const slug = workSlugs.get(chapter.book_id);
+    return slug ? [{ slug, chapterSlug: chapter.slug }] : [];
+  });
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, chapterSlug } = await params;
-  const supabase = await createClient();
-  const now = new Date().toISOString();
-  
-  const { data: book } = await supabase
-    .from('books')
-    .select('id, title, cover_url')
-    .eq('slug', slug)
-    .in('status', ['published', 'scheduled'])
-    .lte('published_at', now)
-    .maybeSingle();
+  const book = await getPublicBook(slug);
   if (!book) {
     return {
       title: 'Sayfa Bulunamadı',
@@ -33,14 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
   
-  const { data: chapter } = await supabase
-    .from('chapters')
-    .select('title')
-    .eq('book_id', book.id)
-    .eq('slug', chapterSlug)
-    .in('status', ['published', 'scheduled'])
-    .lte('published_at', now)
-    .maybeSingle();
+  const chapter = await getPublicChapter(book.id, chapterSlug);
   if (!chapter) {
     return {
       title: 'Sayfa Bulunamadı',
@@ -81,30 +85,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ChapterPage({ params }: Props) {
   const { slug, chapterSlug } = await params;
-  const supabase = await createClient();
-  const now = new Date().toISOString();
-
-  const { data: book } = await supabase
-    .from('books')
-    .select('*')
-    .eq('slug', slug)
-    .in('status', ['published', 'scheduled'])
-    .lte('published_at', now)
-    .maybeSingle();
+  const book = await getPublicBook(slug);
 
   if (!book) notFound();
 
-  const { data: chapters } = await supabase
-    .from('chapters')
-    .select('*')
-    .eq('book_id', book.id)
-    .in('status', ['published', 'scheduled'])
-    .lte('published_at', now)
-    .order('chapter_order', { ascending: true });
-
-  if (!chapters || chapters.length === 0) notFound();
-
-  const currentChapter = chapters.find((c: Chapter) => c.slug === chapterSlug);
+  const [currentChapter, chapters] = await Promise.all([
+    getPublicChapter(book.id, chapterSlug),
+    getPublicChapterList(book.id),
+  ]);
   if (!currentChapter) notFound();
 
   return (

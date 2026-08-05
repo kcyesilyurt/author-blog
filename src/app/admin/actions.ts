@@ -1,7 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { getBootstrapAdminId, requireAdmin } from '@/lib/auth/admin';
+import { PUBLICATIONS_CACHE_TAG } from '@/lib/publication-cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   createImageObjectName,
@@ -22,6 +23,11 @@ import {
 export type CreateBookResult =
   | { success: true }
   | { success: false; error: string };
+
+function invalidatePublications() {
+  updateTag(PUBLICATIONS_CACHE_TAG);
+  revalidatePath('/sitemap.xml');
+}
 
 function parseContentType(value: FormDataEntryValue | null): 'book' | 'post' {
   if (value !== 'book' && value !== 'post') throw new Error('İçerik türü geçersiz');
@@ -133,6 +139,7 @@ export async function createBook(formData: FormData): Promise<CreateBookResult> 
 
   revalidatePath('/admin');
   revalidatePath('/');
+  invalidatePublications();
   return { success: true };
 }
 
@@ -173,6 +180,7 @@ export async function updateBook(idValue: string, formData: FormData) {
   revalidatePath('/');
   revalidatePath(`/books/${existing.slug}`);
   revalidatePath(`/books/${slug}`);
+  invalidatePublications();
 }
 
 export async function deleteBook(idValue: string) {
@@ -185,6 +193,7 @@ export async function deleteBook(idValue: string) {
   revalidatePath('/admin');
   revalidatePath('/');
   if (oldPath) revalidatePath(oldPath);
+  invalidatePublications();
 }
 
 export async function createChapter(bookIdValue: string, formData: FormData) {
@@ -211,6 +220,7 @@ export async function createChapter(bookIdValue: string, formData: FormData) {
 
   if (error) throw new Error(error.code === '23505' ? 'Bu bölüm URL adresi zaten kullanılıyor' : error.message);
   revalidatePath(`/admin/books/${bookId}`);
+  invalidatePublications();
   return data;
 }
 
@@ -260,6 +270,7 @@ export async function updateChapter(chapterIdValue: string, formData: FormData) 
     revalidatePath(bookPath);
     revalidatePath(`${bookPath}/${slug}`);
   }
+  invalidatePublications();
 }
 
 export async function deleteChapter(chapterIdValue: string, bookIdValue: string) {
@@ -278,6 +289,7 @@ export async function deleteChapter(chapterIdValue: string, bookIdValue: string)
   const bookPath = await getBookPath(bookId);
   if (bookPath) revalidatePath(bookPath);
   if (oldPublicPath) revalidatePath(oldPublicPath);
+  invalidatePublications();
 }
 
 export async function createCoverUploadTicket(request: {

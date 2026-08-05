@@ -35,6 +35,18 @@ export interface Chapter {
   updated_at: string;
 }
 
+export type PublicChapterListItem = Pick<
+  Chapter,
+  'id' | 'book_id' | 'title' | 'slug' | 'chapter_order'
+>;
+
+export type PublicChapter = Pick<
+  Chapter,
+  'id' | 'book_id' | 'title' | 'slug' | 'content' | 'chapter_order'
+>;
+
+export type PublicChapterRouteItem = Pick<Chapter, 'book_id' | 'slug'>;
+
 export interface CommunityProfile {
   display_name: string | null;
   first_name: string | null;

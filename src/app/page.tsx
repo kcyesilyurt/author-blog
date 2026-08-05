@@ -1,10 +1,12 @@
-import { createClient } from '@/lib/supabase/server';
 import BookCard from '@/components/BookCard';
-import { Book } from '@/lib/types';
+import type { Book } from '@/lib/types';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 import { SITE_DESCRIPTION, SITE_NAME, SOCIAL_IMAGE_PATH } from '@/lib/site';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
+import { getPublicWorks } from '@/lib/publications';
+
+export const revalidate = 60;
 
 const videos = [
   { videoId: 'rv3-asOqQNY', startSeconds: 381 },
@@ -76,16 +78,7 @@ function WorkSection({
 }
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const now = new Date().toISOString();
-  const { data: books } = await supabase
-    .from('books')
-    .select('*')
-    .in('status', ['published', 'scheduled'])
-    .lte('published_at', now)
-    .order('created_at', { ascending: false });
-
-  const works = (books ?? []) as Book[];
+  const works = await getPublicWorks();
   const latestWork = works[0] ? [works[0]] : [];
   const bookWorks = works.filter((work) => work.type === 'book');
   const blogPosts = works.filter((work) => work.type === 'post');
