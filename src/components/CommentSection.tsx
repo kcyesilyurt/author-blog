@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { timeAgo } from '@/lib/utils';
 import type { Comment } from '@/lib/types';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import CommunityRoleTag from '@/components/CommunityRoleTag';
 import {
   getCommunityViewerState,
   listChapterComments,
@@ -115,9 +116,10 @@ export default function CommentSection({ chapterId }: { chapterId: string }) {
                   {getDisplayName(comment)}
                   {comment.profiles?.is_admin && <VerifiedBadge />}
                 </span>
-                <span className="text-xs bg-[#64090C]/15 text-[#EFEACD]/50 px-2 py-0.5 rounded-full border border-[#64090C]/40">
-                  {comment.user_id ? 'Okur' : 'Misafir'}
-                </span>
+                <CommunityRoleTag
+                  isAdmin={comment.profiles?.is_admin === true}
+                  isRegistered={Boolean(comment.user_id)}
+                />
                 <span className="text-[#EFEACD]/30">•</span>
                 <span className="text-xs text-[#EFEACD]/40">{timeAgo(comment.created_at)}</span>
               </div>

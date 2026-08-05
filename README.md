@@ -33,7 +33,7 @@ Site özellikleri, okur/yönetici kullanımı ve Supabase'in yalnızca web panel
 - `/admin/comments`, `/admin/users`, `/admin/stats`: Moderasyon ve istatistikler
 - `/admin/events`, `/admin/messages`: Etkinlik takvimi ve özel iletişim kutusu
 
-Misafirler isim girerek içeriklere yorum yapabilir ve Panoya yazabilir. Kayıtlı kullanıcılar `Okur`, kayıtsız kullanıcılar `Misafir` etiketiyle görünür; yöneticilerin adının yanında mavi doğrulama rozeti bulunur.
+Misafirler isim girerek içeriklere yorum yapabilir ve Panoya yazabilir. Kayıtlı kullanıcılar `Okur`, kayıtsız kullanıcılar `Misafir` etiketiyle görünür; yöneticilerde rol etiketi yerine yalnızca adın yanındaki mavi doğrulama rozeti gösterilir.
 
 ## Yerel kurulum
 

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { timeAgo } from '@/lib/utils';
 import type { PanoMessage } from '@/lib/types';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import CommunityRoleTag from '@/components/CommunityRoleTag';
 import { deletePanoMessage } from '@/app/admin/actions';
 import {
   getCommunityViewerState,
@@ -172,9 +173,10 @@ export default function PanoBoard() {
                     {getDisplayName(message)}
                     {message.profiles?.is_admin && <VerifiedBadge />}
                   </span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-[#64090C]/15 text-[#EFEACD]/50 border border-[#64090C]/40">
-                    {message.user_id ? 'Okur' : 'Misafir'}
-                  </span>
+                  <CommunityRoleTag
+                    isAdmin={message.profiles?.is_admin === true}
+                    isRegistered={Boolean(message.user_id)}
+                  />
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-xs text-[#EFEACD]/40">{timeAgo(message.created_at)}</span>

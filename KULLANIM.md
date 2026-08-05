@@ -20,7 +20,7 @@ Bu proje, bir yazarın kitaplarını ve blog yazılarını yayımlayabildiği; o
 | --- | --- | --- |
 | Misafir | Yayımlanmış eserleri okur, isim girerek yorum/Pano mesajı yazar ve tepki bırakır | `Misafir` |
 | Kayıtlı kullanıcı | Misafir yetkilerine ek olarak profil adı ve avatar kullanır | `Okur` |
-| Yönetici/yazar | Eser ve bölüm yönetir; kullanıcı, yorum ve Pano moderasyonu yapar | `Okur` ve mavi doğrulama rozeti |
+| Yönetici/yazar | Eser ve bölüm yönetir; kullanıcı, yorum ve Pano moderasyonu yapar | Yalnızca mavi doğrulama rozeti |
 
 Askıya alınmış kullanıcılar siteyi okuyabilir ancak yorum veya Pano mesajı gönderemez.
 
@@ -51,7 +51,7 @@ Askıya alınmış kullanıcılar siteyi okuyabilir ancak yorum veya Pano mesaj�
 2. Kitaplarda bir bölümü açın; blog yazılarında içerik bağlantısını açın.
 3. Okuma sayfasında önceki/sonraki bölüm bağlantılarını kullanın; sayfanın altında tepki bırakın veya yorum yazın.
 4. Hesabınız yoksa yorum formuna bir isim girin. Mesajınız `Misafir` etiketiyle görünür.
-5. Hesabınız varsa yorum profil adınızla ve `Okur` etiketiyle görünür.
+5. Hesabınız varsa yorum profil adınızla ve `Okur` etiketiyle görünür. Yönetici hesaplarında `Okur` etiketi yerine yalnızca mavi doğrulama rozeti gösterilir.
 6. Eserlerden bağımsız konuşmak için üst menüdeki `Pano` bağlantısını kullanın.
 
 Kayıt olmak zorunlu değildir. Profil ve avatar kullanmak, yorumlarda sürekli aynı kimlikle görünmek için kayıt olunabilir.
@@ -121,6 +121,12 @@ Ana sayfadaki `En Son Eklenen`, görünür eserler arasından en yeni kaydı gö
 
 - `/admin/events`: Bir etkinliği taslak olarak hazırlayabilir, yayımlayabilir, güncelleyebilir veya arşivleyebilirsiniz. Yaklaşan ve geçmiş etkinlikler kamusal sayfada tarihe göre ayrılır.
 - `/admin/messages`: İletişim formundan gelen mesajları okuyabilir, okunmadı olarak işaretleyebilir veya silebilirsiniz. E-posta adresleri tarayıcı Supabase istemcisine açılmaz; yalnızca yetkili sunucu işlemleriyle okunur.
+
+İletişim formu şu anda e-posta bildirimi göndermez. Başarılı gönderimler Supabase'deki özel `contact_messages` tablosuna kaydedilir ve yalnızca `/admin/messages` gelen kutusunda görünür.
+
+### Ana sayfadaki YouTube videoları
+
+YouTube videoları henüz yönetim panelinden düzenlenmez. Dört kayıt [`src/app/page.tsx`](./src/app/page.tsx) içindeki `videos` dizisinde `videoId` ve isteğe bağlı `startSeconds` olarak tutulur. Bu alanlar değiştirildiğinde kod değişikliğini test edip GitHub'a göndermek gerekir; Vercel yeni sürümü otomatik yayımlar.
 
 ## Görsel yükleme sınırları
 
@@ -229,6 +235,22 @@ Domain WordPress.com hesabında kalabilir; transfer zorunlu değildir. DNS deği
 6. `/`, `/ben-kimim`, `/etkinlikler`, `/iletisim`, `/pano`, `/robots.txt` ve `/sitemap.xml` adreslerini kontrol edin.
 
 Eski `/kayip-liman` ve `/tanri-kuyusunun-kemikleri` adresleri ancak aynı slug'lı gerçek kitaplar Supabase'e taşındığında kalıcı olarak yeni kitap rotalarına yönlendirilmelidir. Şu anda örnek kitaplara yönlendirme yapılmaz.
+
+## Yayından sonra güncelleme
+
+- Kitap, bölüm, blog, etkinlik, kullanıcı ve mesaj işlemleri yönetim panelinden yapılır. Bunlar Supabase'e kaydedildiği için Git commit'i veya Vercel dağıtımı gerekmez.
+- Tasarım, sayfa düzeni, uygulama davranışı ve mevcut YouTube listesi kodun parçasıdır. Güvenli akış: ayrı Git dalına değişikliği gönderin, Vercel Preview adresinde deneyin, sonra `main` dalına birleştirin. `main` güncellenince Vercel üretim alan adını otomatik olarak yeni sürüme geçirir.
+- Hatalı bir kod sürümü yayımlanırsa Vercel'deki önceki production deployment'a rollback yapılabilir. Bu işlem Supabase verilerini veya migration'ları geri almaz.
+
+## Yayındaki siteyi geçici kapatma
+
+Alan adı Vercel'e bağlandıktan sonra site bilgisayarınız ve `npm run dev` kapalıyken de barındırılmaya devam eder.
+
+- Okura düzgün bir açıklama göstermek için önerilen yöntem, açılıp kapatılabilen bir bakım sayfasıdır.
+- Vercel'in sert proje duraklatma işlemi REST API üzerinden yapılır ve ziyaretçilere `503 DEPLOYMENT_PAUSED` gösterir. Proje daha sonra Vercel Project Settings içindeki `Resume Service` ile, yeniden deploy gerekmeden açılabilir. Erişim belirteci kesinlikle repoya veya ekran görüntüsüne konmamalıdır.
+- DNS kayıtlarını silmek veya Vercel projesini silmek geçici kapatma yöntemi olarak kullanılmamalıdır.
+
+Vercel Hobby planı yalnızca kişisel ve ticari olmayan kullanıma izin verir. Bu site bir yazarın kitaplarını tanıtıyor ve müşteri için hazırlanıyorsa Vercel'in [ticari kullanım tanımına](https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage) büyük olasılıkla girer; canlıya geçmeden önce Pro planı değerlendirin.
 
 ## İlk yöneticiyi oluşturma
 
