@@ -1,0 +1,20 @@
+# Local secrets must never be part of a CLI deployment upload.
+.env*
+
+# Generated output and local tooling state.
+.git/
+.vercel/
+.next/
+node_modules/
+coverage/
+.agents/
+.codex/
+.cache/
+.turbo/
+supabase/.temp/
+*.log
+.DS_Store
+*.pem
+*.key
+*.p12
+*.pfx

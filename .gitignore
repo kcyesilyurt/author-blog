@@ -24,12 +24,22 @@
 .DS_Store
 .idea/
 *.pem
+*.key
+*.p12
+*.pfx
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+
+# local caches
+/.cache/
+/.turbo/
+.eslintcache
+/supabase/.temp/
 
 # env files (can opt-in for committing if needed)
 .env*
