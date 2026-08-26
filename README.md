@@ -56,6 +56,7 @@ cp .env.local.example .env.local
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://PROJECT_REF.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 
 NEXT_PUBLIC_SITE_NAME="Yazar Adı"
@@ -66,13 +67,13 @@ RATE_LIMIT_SECRET=uzun_ve_rastgele_bir_deger
 CRON_SECRET=farkli_uzun_ve_rastgele_bir_deger
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY`, `RATE_LIMIT_SECRET` ve `CRON_SECRET` kesinlikle `NEXT_PUBLIC_` öneki almamalı ve tarayıcıya gönderilmemelidir. Son iki anahtar için `openssl rand -hex 32` komutunu ayrı ayrı çalıştırın; aynı değeri tekrar kullanmayın. `CRON_SECRET`, Vercel Production ortamına da deployment'tan önce eklenmelidir.
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` tarayıcıda görünmesi amaçlanan Cloudflare site key'idir; Turnstile secret key değildir. Turnstile secret yalnız Supabase Auth koruma ayarına girilir. `SUPABASE_SERVICE_ROLE_KEY`, `RATE_LIMIT_SECRET` ve `CRON_SECRET` kesinlikle `NEXT_PUBLIC_` öneki almamalı ve tarayıcıya gönderilmemelidir. Son iki anahtar için `openssl rand -hex 32` komutunu ayrı ayrı çalıştırın; aynı değeri tekrar kullanmayın. `CRON_SECRET`, Vercel Production ortamına da deployment'tan önce eklenmelidir.
 
 Eski `ADMIN_EMAIL` ve `NEXT_PUBLIC_ADMIN_EMAIL` değişkenleri artık kullanılmaz; ilk yönetici `ADMIN_USER_ID` ile belirlenir.
 
 İlk yönetici için önce normal bir hesap oluşturun, Supabase Dashboard > Authentication > Users bölümünden bu hesabın UUID değerini alın ve `ADMIN_USER_ID` olarak ayarlayın. Bu kullanıcı `/admin` alanına ilk kez girdiğinde profil kaydı yönetici olarak işaretlenir. E-posta adresine göre otomatik yetki verilmez.
 
-Production kayıt e-postaları için Supabase'in varsayılan göndericisine güvenmeyin: bu servis yalnızca Supabase organizasyon takımındaki önceden yetkili adreslere gönderir ve proje genelindeki kayıt, parola sıfırlama ve e-posta değiştirme istekleri aynı düşük kotayı paylaşır. [Custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) bağlayın, sağlayıcıdaki link tracking'i kapatın ve Auth e-posta limitini beklenen trafiğe göre ayarlayın. SMTP parolası uygulama ortam değişkenlerine değil Supabase'in güvenli ayarına girilir.
+Production kayıt e-postaları için Supabase'in varsayılan göndericisine güvenmeyin: bu servis yalnızca Supabase organizasyon takımındaki önceden yetkili adreslere gönderir ve proje genelindeki kayıt, parola sıfırlama ve e-posta değiştirme istekleri aynı düşük kotayı paylaşır. [Custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) bağlayın, sağlayıcıdaki link tracking'i kapatın ve Auth e-posta limitini beklenen trafiğe göre ayarlayın. SMTP parolası uygulama ortam değişkenlerine değil Supabase'in güvenli ayarına girilir. Signup ve login formları `NEXT_PUBLIC_TURNSTILE_SITE_KEY` bulunduğunda CAPTCHA token'ı gönderir; kod deploy edilmeden Supabase CAPTCHA korumasını açmayın.
 
 Ardından geliştirme sunucusunu başlatıp `http://localhost:3000` adresini açın:
 

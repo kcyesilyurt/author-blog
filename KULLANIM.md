@@ -309,13 +309,46 @@ Bu hata SQL tablosunun büyümesinden değil Supabase Auth'ın e-posta gönderim
 
 Custom SMTP bağlandığında başlangıç Auth limiti proje genelinde **30 e-posta/saat**tir; sağlayıcının kendi kota/itibar kuralları buna ek olarak geçerlidir. Teslimat doğrulandıktan ve kötüye kullanım koruması kurulduktan sonra Supabase limiti beklenen trafiğe göre değiştirilebilir.
 
-1. Transactional e-posta sağlayıcınızda gönderici domainini doğrulayıp SPF, DKIM ve DMARC kayıtlarını tamamlayın.
-2. Sağlayıcının link tracking özelliğini kapatın. Bu özellik tek kullanımlık Supabase doğrulama URL'sini yeniden yazıp bağlantıyı bozabilir.
-3. Supabase Dashboard > `Authentication > Emails > SMTP Settings` alanında custom SMTP'yi etkinleştirin.
-4. Bir test kaydıyla kayıt doğrulama ve parola sıfırlama bağlantılarının doğru domain'e gittiğini doğrulayın.
-5. `Authentication > Rate Limits` alanında e-posta kotasını sağlayıcı kotasını aşmayacak biçimde kontrollü artırın.
-6. `Logs Explorer` içindeki `auth_logs` kaynağında `over_email_send_rate_limit`, `over_request_rate_limit` ve `email_address_not_authorized` kodlarını ayırt edin.
-7. Botların ortak kotayı tüketmesini önlemek için Turnstile/hCaptcha eklemeyi değerlendirin; frontend token göndermeye hazır olmadan Dashboard'da CAPTCHA'yı açmayın.
+Küçük hacimli bu site için başlangıç tercihi olarak Resend kullanılabilir; SMTP destekli başka bir transactional sağlayıcı da aynı mimariyle çalışır. Auth gönderimini ilerideki pazarlama e-postalarından ayırmak için `auth.ovgudevecisafi.com` gönderim alt alanı ve `no-reply@auth.ovgudevecisafi.com` göndereni önerilir.
+
+##### Resend ve WordPress.com DNS kurulumu
+
+1. Resend hesabında `Domains > Add Domain` alanına `auth.ovgudevecisafi.com` ekleyin.
+2. Resend'in ürettiği MX/TXT (SPF ve DKIM) kayıtlarını ezberden değil ekrandaki tür, ad, değer ve priority ile birebir kopyalayın.
+3. Domain WordPress.com nameserver'larını kullanıyorsa `Hosting Dashboard > Domains > ovgudevecisafi.com > Settings > DNS records > Add record` yolundan bu kayıtları ekleyin. Nameserver başka sağlayıcıdaysa kayıtları aktif DNS sağlayıcısına girin. Mevcut site A/CNAME veya kök domain e-posta kayıtlarını silmeyin.
+4. Resend'de domain `Verified` olana kadar bekleyin; ardından yalnız gönderim yetkili ve mümkünse bu domainle sınırlı bir API key oluşturun.
+5. Resend domain ayarlarında open/click tracking'in kapalı kaldığını doğrulayın. Link tracking tek kullanımlık Supabase doğrulama URL'sini yeniden yazabilir.
+6. Supabase Dashboard > `Authentication > Emails > SMTP Settings` alanında Custom SMTP'yi açıp aşağıdakileri girin:
+
+```text
+Sender name: Övgü Deveci Safi
+Sender email: no-reply@auth.ovgudevecisafi.com
+Host: smtp.resend.com
+Port: 465
+Username: resend
+Password: Resend'de oluşturulan re_... API key
+```
+
+7. SMTP ayarını kaydedin. API key'i Vercel'e, `.env.local` dosyasına veya Git'e koymayın; yalnız Supabase'in SMTP parola alanında ve parola yöneticinizde tutun.
+8. Daha önce kullanılmamış gerçek bir adresle tek bir kontrollü kayıt yapın. Resend `Emails` ekranında `Delivered`, Supabase `auth_logs` içinde başarılı signup ve gelen mesajda çalışan doğrulama bağlantısı görmeden limiti yükseltmeyin.
+9. Supabase `Authentication > Rate Limits` alanında `Emails sent` değerini başlangıçta **30/saat** bırakın. Sağlayıcının günlük/aylık kotasını ve gerçek trafik ölçümünü görmeden daha yukarı çıkmayın.
+
+[Resend–Supabase SMTP rehberi](https://resend.com/docs/send-with-supabase-smtp), [WordPress.com DNS kaydı ekleme](https://wordpress.com/support/domains/custom-dns/add-a-new-dns-record/)
+
+##### Cloudflare Turnstile ile bot koruması
+
+Custom SMTP daha yüksek kapasite sağlar ama botların bu yeni kotayı tüketmesini tek başına engellemez. Uygulama signup ve login çağrılarına Turnstile token'ı gönderecek şekilde hazırlanmıştır; ayrıca aynı sekmedeki çift submit kilitlenir ve Supabase `429` yanıtından sonra buton 60 saniye bekletilir. Bu client cooldown yalnız kullanıcı deneyimidir, güvenlik sınırı değildir.
+
+1. Cloudflare Dashboard > `Turnstile > Add widget` alanında managed bir widget oluşturun.
+2. Production hostname olarak `ovgudevecisafi.com` ekleyin; Cloudflare bu kaydın `www` dahil alt alanlarını da yetkilendirir. Preview hostname'i ayrıca izinli değilse production Turnstile anahtarını Preview'da kullanmayın.
+3. Cloudflare'ın verdiği **Site key** değerini Vercel Production ortamına `NEXT_PUBLIC_TURNSTILE_SITE_KEY` olarak ekleyin. Bu public değerdir; `Secret key` değildir.
+4. Yeni kodu deploy edin ve `/auth/signup` ile `/auth/login` sayfalarında Turnstile widget'ının yüklendiğini doğrulayın. Bu aşamada Supabase CAPTCHA henüz kapalı kalmalıdır.
+5. Cloudflare'ın verdiği **Secret key** değerini Supabase Dashboard > `Authentication > Bot and Abuse Protection > Enable CAPTCHA protection` alanında `Cloudflare Turnstile` sağlayıcısıyla kaydedin. Secret key Vercel'e veya Git'e girilmez.
+6. CAPTCHA'yı etkinleştirin ve hemen kontrollü bir login ile signup testi yapın. `captcha_failed` görülürse toggle'ı kapatıp site key/secret eşleşmesini ve hostname izin listesini düzeltin; art arda denemelerle e-posta kotasını tüketmeyin.
+
+Sıra ters çevrilmemelidir: Supabase CAPTCHA, frontend token desteği production'a çıkmadan açılırsa hem kayıt hem giriş istekleri reddedilebilir. [Supabase CAPTCHA rehberi](https://supabase.com/docs/guides/auth/auth-captcha)
+
+CAPTCHA production Supabase projesinde açıldıktan sonra site key bulunmayan yerel veya Preview formları token gönderemeyeceği için bu ortamlardaki login/signup beklenen biçimde reddedilir. Cloudflare production widget'ına `localhost` eklenmesini önermediğinden, düzenli yerel Auth geliştirmesi gerekiyorsa ayrı bir staging Supabase projesi ile Cloudflare test key/secret çiftini kullanın; test secret'ını production Supabase projesine yazmayın. Production dışındaki Auth akışına ihtiyacınız yoksa site key'i yalnız Vercel `Production` ortamında tutun.
 
 SMTP kullanıcı adı ve parolası `.env.local` veya repoya yazılmaz; Supabase Dashboard'da tutulur. Uygulama bilinen Auth hata kodlarını Türkçe ve güvenli mesaja çevirir, fakat gerçek proje kotasını koddan yükseltemez. [Custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) ve [production kontrol listesi](https://supabase.com/docs/guides/deployment/going-into-prod)
 
@@ -332,6 +365,7 @@ Ardından `.env.local` dosyasını doldurun:
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://PROJECT_REF.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=Cloudflare_public_site_key
 SUPABASE_SERVICE_ROLE_KEY=...
 
 NEXT_PUBLIC_SITE_NAME="Yazar Adı"
@@ -348,7 +382,7 @@ CRON_SECRET=farkli_uzun_ve_rastgele_bir_deger
 openssl rand -hex 32
 ```
 
-Her iki secret da yalnızca sunucu içindir: `NEXT_PUBLIC_` öneki almamalı, Git'e eklenmemeli ve tarayıcı koduna gönderilmemelidir. `CRON_SECRET` özellikle Vercel `Production` ortamına deployment'tan önce eklenir; Vercel günlük cron isteğinde bu değeri Bearer token olarak otomatik kullanır.
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` public widget kimliğidir ve tarayıcıya gönderilir. Cloudflare Turnstile **Secret key** bu değişkene yazılmaz; yalnız Supabase Auth CAPTCHA ayarında tutulur. `RATE_LIMIT_SECRET` ve `CRON_SECRET` yalnızca sunucu içindir: `NEXT_PUBLIC_` öneki almamalı, Git'e eklenmemeli ve tarayıcı koduna gönderilmemelidir. `CRON_SECRET` özellikle Vercel `Production` ortamına deployment'tan önce eklenir; Vercel günlük cron isteğinde bu değeri Bearer token olarak otomatik kullanır.
 
 Eski `ADMIN_EMAIL` ve `NEXT_PUBLIC_ADMIN_EMAIL` değişkenleri artık kullanılmaz. İlk yönetici yalnızca `ADMIN_USER_ID` ile belirlenir.
 
