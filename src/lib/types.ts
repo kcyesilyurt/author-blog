@@ -20,6 +20,7 @@ export interface Book {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  view_count: number;
 }
 
 export interface Chapter {
@@ -33,16 +34,17 @@ export interface Chapter {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  view_count: number;
 }
 
 export type PublicChapterListItem = Pick<
   Chapter,
-  'id' | 'book_id' | 'title' | 'slug' | 'chapter_order'
+  'id' | 'book_id' | 'title' | 'slug' | 'chapter_order' | 'view_count'
 >;
 
 export type PublicChapter = Pick<
   Chapter,
-  'id' | 'book_id' | 'title' | 'slug' | 'content' | 'chapter_order'
+  'id' | 'book_id' | 'title' | 'slug' | 'content' | 'chapter_order' | 'view_count'
 >;
 
 export type PublicChapterRouteItem = Pick<Chapter, 'book_id' | 'slug'>;
@@ -121,4 +123,87 @@ export interface ContactMessage {
   message: string;
   created_at: string;
   read_at: string | null;
+}
+
+export type ActionResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
+
+export type FanArtStatus =
+  | 'uploading'
+  | 'processing'
+  | 'cancelled'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'removed';
+
+export type FanArtOwnStatus = 'pending' | 'approved' | 'rejected' | 'removed';
+
+export interface FanArtCursor {
+  moderatedAt: string;
+  id: number;
+}
+
+export interface FanArtOwnCursor {
+  activityAt: string;
+  id: number;
+}
+
+export interface FanArtPublicItem {
+  id: number;
+  title: string;
+  caption: string | null;
+  altText: string;
+  imageUrl: string;
+  width: number;
+  height: number;
+  createdAt: string;
+  artistName: string;
+}
+
+export interface FanArtPublicPage {
+  items: FanArtPublicItem[];
+  nextCursor: FanArtCursor | null;
+}
+
+export interface FanArtOwnItem {
+  id: number;
+  title: string;
+  status: FanArtOwnStatus;
+  createdAt: string;
+  moderationReason: string | null;
+}
+
+export interface FanArtOwnPage {
+  items: FanArtOwnItem[];
+  nextCursor: FanArtOwnCursor | null;
+}
+
+export interface AdminFanArtItem {
+  id: number;
+  title: string;
+  caption: string | null;
+  altText: string;
+  previewUrl: string;
+  width: number;
+  height: number;
+  submittedAt: string;
+  artistName: string;
+}
+
+export interface AdminPublishedFanArtItem {
+  id: number;
+  title: string;
+  altText: string;
+  imageUrl: string;
+  width: number;
+  height: number;
+  publishedAt: string;
+  artistName: string;
+}
+
+export interface AdminPublishedFanArtPage {
+  items: AdminPublishedFanArtItem[];
+  nextCursor: FanArtCursor | null;
 }

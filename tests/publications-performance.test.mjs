@@ -16,8 +16,12 @@ test('public publication queries select only the data each page needs', () => {
   assert.doesNotMatch(PUBLIC_CHAPTER_LIST_FIELDS, /\*/);
   assert.doesNotMatch(PUBLIC_CHAPTER_ROUTE_FIELDS, /\*/);
   assert.match(PUBLIC_CHAPTER_FIELDS, /\bcontent\b/);
+  assert.match(PUBLIC_BOOK_FIELDS, /\bview_count\b/);
+  assert.match(PUBLIC_CHAPTER_FIELDS, /\bview_count\b/);
+  assert.match(PUBLIC_CHAPTER_LIST_FIELDS, /\bview_count\b/);
   assert.doesNotMatch(PUBLIC_CHAPTER_LIST_FIELDS, /\bcontent\b/);
   assert.doesNotMatch(PUBLIC_CHAPTER_ROUTE_FIELDS, /\bcontent\b/);
+  assert.doesNotMatch(PUBLIC_CHAPTER_ROUTE_FIELDS, /\bview_count\b/);
 });
 
 test('public publication cache stays fresh and has a shared invalidation tag', () => {

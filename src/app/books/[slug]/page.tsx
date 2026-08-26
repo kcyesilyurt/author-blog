@@ -10,6 +10,8 @@ import {
   getPublicChapterList,
   getPublicWorks,
 } from '@/lib/publications';
+import TrackedViewCount from '@/components/TrackedViewCount';
+import ViewCount from '@/components/ViewCount';
 
 export const revalidate = 60;
 
@@ -105,6 +107,12 @@ export default async function BookPage({ params }: Props) {
           <p className="text-sm text-[#EFEACD]/40 mt-3">
             Yayınlanma tarihi: {formatDate(book.published_at || book.created_at)}
           </p>
+          <TrackedViewCount
+            contentType="book"
+            contentId={book.id}
+            initialCount={book.view_count}
+            className="mt-3 text-sm text-[#EFEACD]/45"
+          />
         </div>
       </div>
 
@@ -141,8 +149,9 @@ export default async function BookPage({ params }: Props) {
                     {chapter.title}
                   </span>
                 </div>
-                <span className="text-[#EFEACD]/30 group-hover:text-[#EFEACD]/60 transition-colors">
-                  →
+                <span className="flex shrink-0 items-center gap-3 text-[#EFEACD]/30 group-hover:text-[#EFEACD]/60 transition-colors">
+                  <ViewCount count={chapter.view_count} className="text-xs" />
+                  <span aria-hidden="true">→</span>
                 </span>
               </Link>
             ))}

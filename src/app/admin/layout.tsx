@@ -54,6 +54,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             ✉️ Mesajlar
           </Link>
           <Link
+            href="/admin/fan-art"
+            className="px-4 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm font-medium text-neutral-200 hover:text-pink-400 hover:border-pink-400/30 transition whitespace-nowrap"
+          >
+            🎨 Fan Art
+          </Link>
+          <Link
             href="/admin/users"
             className="px-4 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm font-medium text-neutral-200 hover:text-pink-400 hover:border-pink-400/30 transition whitespace-nowrap"
           >

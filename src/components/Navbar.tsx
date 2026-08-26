@@ -15,6 +15,7 @@ const publicLinks = [
   { href: '/etkinlikler', label: 'Etkinlikler' },
   { href: '/ben-kimim', label: 'Ben Kimim?' },
   { href: '/pano', label: 'Pano' },
+  { href: '/fan-art', label: 'Fan Art' },
   { href: '/iletisim', label: 'İletişim' },
 ];
 
