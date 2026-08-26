@@ -4,7 +4,13 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export type RateLimitAction = 'comment' | 'pano' | 'reaction' | 'avatar_upload' | 'contact';
+export type RateLimitAction =
+  | 'comment'
+  | 'pano'
+  | 'reaction'
+  | 'avatar_upload'
+  | 'contact'
+  | 'fan_art_upload';
 
 const GUEST_COOKIE = 'author_blog_guest';
 const RATE_LIMITS: Record<
@@ -16,6 +22,7 @@ const RATE_LIMITS: Record<
   reaction: { limit: 60, ipLimit: 300, windowSeconds: 60 },
   avatar_upload: { limit: 5, ipLimit: 30, windowSeconds: 60 * 60 },
   contact: { limit: 3, ipLimit: 20, windowSeconds: 60 * 60 },
+  fan_art_upload: { limit: 3, ipLimit: 20, windowSeconds: 60 * 60 },
 };
 
 type ActorFingerprint = {
@@ -73,8 +80,12 @@ async function getGuestId(): Promise<string> {
   return id;
 }
 
+async function getActorIdentifier(userId: string | null): Promise<string> {
+  return userId ? `user:${userId}` : `guest:${await getGuestId()}`;
+}
+
 async function getActorHashes(userId: string | null): Promise<ActorFingerprint[]> {
-  const actor = userId ? `user:${userId}` : `guest:${await getGuestId()}`;
+  const actor = await getActorIdentifier(userId);
   const hashes: ActorFingerprint[] = [{ hash: digest(actor), scope: 'actor' }];
 
   const headerStore = await headers();
@@ -93,6 +104,17 @@ async function getActorHashes(userId: string | null): Promise<ActorFingerprint[]
 
 export async function getPrimaryActorHash(userId: string | null): Promise<string> {
   return (await getActorHashes(userId))[0].hash;
+}
+
+export async function getScopedActorHash(
+  userId: string | null,
+  scope: string
+): Promise<string> {
+  if (!/^[a-z0-9:_-]{1,160}$/.test(scope)) {
+    throw new Error('Sayaç kapsamı geçersiz');
+  }
+
+  return digest(`scoped:${scope}:${await getActorIdentifier(userId)}`);
 }
 
 export async function enforceRateLimit(action: RateLimitAction, userId: string | null) {

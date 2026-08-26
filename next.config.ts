@@ -23,7 +23,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       ...(supabaseHostname
-        ? [{ protocol: 'https' as const, hostname: supabaseHostname, pathname: '/storage/v1/object/public/**' }]
+        ? [
+            { protocol: 'https' as const, hostname: supabaseHostname, pathname: '/storage/v1/object/public/**' },
+            { protocol: 'https' as const, hostname: supabaseHostname, pathname: '/storage/v1/object/sign/fan-art-staging/**' },
+          ]
         : []),
       {
         protocol: 'https',

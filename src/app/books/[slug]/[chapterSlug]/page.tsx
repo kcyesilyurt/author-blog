@@ -15,6 +15,7 @@ import {
   getPublicChapterRoutes,
   getPublicWorks,
 } from '@/lib/publications';
+import TrackedViewCount from '@/components/TrackedViewCount';
 
 export const revalidate = 60;
 
@@ -122,6 +123,12 @@ export default async function ChapterPage({ params }: Props) {
           <h1 className="mb-8 font-sans text-3xl font-bold text-white sm:text-4xl">
             {currentChapter.title}
           </h1>
+          <TrackedViewCount
+            contentType="chapter"
+            contentId={currentChapter.id}
+            initialCount={currentChapter.view_count}
+            className="-mt-5 mb-8 text-sm text-neutral-500"
+          />
           <MarkdownRenderer content={currentChapter.content} />
         </ReaderLayout>
       </ReaderExperience>

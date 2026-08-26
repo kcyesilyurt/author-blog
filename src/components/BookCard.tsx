@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Book } from '@/lib/types';
+import ViewCount from '@/components/ViewCount';
 
 export default function BookCard({ book }: { book: Book }) {
   return (
@@ -31,6 +32,7 @@ export default function BookCard({ book }: { book: Book }) {
             {book.description.length > 120 ? `${book.description.substring(0, 120)}...` : book.description}
           </p>
         )}
+        <ViewCount count={book.view_count} className="mt-3 text-xs text-[#EFEACD]/35" />
       </div>
     </Link>
   );
