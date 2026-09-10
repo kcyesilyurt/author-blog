@@ -1,8 +1,17 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import AuthTurnstile, {
+  AUTH_CAPTCHA_REQUIRED,
+} from '@/components/AuthTurnstile';
+import {
+  AUTH_RATE_LIMIT_COOLDOWN_SECONDS,
+  getLoginErrorMessage,
+  isAuthRateLimitError,
+} from '@/lib/auth-errors';
 import { getSafeInternalPath } from '@/lib/auth-redirect';
 import { createClient } from '@/lib/supabase/client';
 
@@ -12,28 +21,65 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const submittingRef = useRef(false);
+  const turnstileRef = useRef<TurnstileInstance>(null);
   const callbackError = searchParams.has('error')
     ? 'Doğrulama bağlantısı kullanılamadı. Lütfen yeniden giriş yapın.'
     : null;
 
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+
+    const timeout = window.setTimeout(() => {
+      setCooldownSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timeout);
+  }, [cooldownSeconds]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current || cooldownSeconds > 0) return;
+    if (AUTH_CAPTCHA_REQUIRED && !captchaToken) {
+      setCaptchaError('Lütfen güvenlik doğrulamasını tamamlayın.');
+      return;
+    }
+
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        options: {
+          captchaToken: captchaToken ?? undefined,
+        },
+      });
 
-    if (signInError) {
-      setError('Giriş başarısız. E-posta veya şifre hatalı.');
-      setLoading(false);
-    } else {
+      if (signInError) {
+        if (isAuthRateLimitError(signInError)) {
+          setCooldownSeconds(AUTH_RATE_LIMIT_COOLDOWN_SECONDS);
+        }
+        setError(getLoginErrorMessage(signInError));
+        return;
+      }
+
       router.replace(getSafeInternalPath(searchParams.get('next')));
       router.refresh();
+    } catch {
+      setError(getLoginErrorMessage(undefined));
+    } finally {
+      setCaptchaToken(null);
+      turnstileRef.current?.reset();
+      submittingRef.current = false;
+      setLoading(false);
     }
   };
 
@@ -77,17 +123,35 @@ function LoginForm() {
               className="min-h-12 w-full rounded-lg border border-[#64090C]/30 bg-[#64090C]/20 px-4 py-3 text-base text-[#EFEACD] focus:border-[#F8D794] focus:outline-none"
             />
           </div>
+
+          <AuthTurnstile
+            action="login"
+            turnstileRef={turnstileRef}
+            onTokenChange={setCaptchaToken}
+            onErrorChange={setCaptchaError}
+          />
           
           {(error || callbackError) && (
-            <p role="alert" className="text-sm text-red-400">{error || callbackError}</p>
+            <p role="alert" aria-live="polite" className="text-sm text-red-400">{error || callbackError}</p>
+          )}
+          {captchaError && (
+            <p role="alert" aria-live="polite" className="text-sm text-red-400">{captchaError}</p>
           )}
           
           <button
             type="submit"
-            disabled={loading}
-            className="min-h-12 w-full rounded-lg bg-[#9C0512] px-4 py-3 text-base font-medium text-[#EFEACD] transition-colors hover:bg-[#9C0512]/80 disabled:opacity-50"
+            disabled={
+              loading ||
+              cooldownSeconds > 0 ||
+              (AUTH_CAPTCHA_REQUIRED && !captchaToken)
+            }
+            className="min-h-12 w-full rounded-lg bg-[#9C0512] px-4 py-3 text-base font-medium text-[#EFEACD] transition-colors hover:bg-[#9C0512]/80 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            {loading
+              ? 'Giriş yapılıyor...'
+              : cooldownSeconds > 0
+                ? `Tekrar deneyin (${cooldownSeconds} sn)`
+                : 'Giriş Yap'}
           </button>
         </form>
         

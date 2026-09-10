@@ -1,8 +1,16 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import Link from 'next/link';
-import { getSignupErrorMessage } from '@/lib/auth-errors';
+import AuthTurnstile, {
+  AUTH_CAPTCHA_REQUIRED,
+} from '@/components/AuthTurnstile';
+import {
+  AUTH_RATE_LIMIT_COOLDOWN_SECONDS,
+  getSignupErrorMessage,
+  isAuthRateLimitError,
+} from '@/lib/auth-errors';
 import { createClient } from '@/lib/supabase/client';
 
 export default function SignupPage() {
@@ -11,13 +19,31 @@ export default function SignupPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const submittingRef = useRef(false);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+
+    const timeout = window.setTimeout(() => {
+      setCooldownSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timeout);
+  }, [cooldownSeconds]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (submittingRef.current) return;
+    if (submittingRef.current || cooldownSeconds > 0) return;
+    if (AUTH_CAPTCHA_REQUIRED && !captchaToken) {
+      setCaptchaError('Lütfen güvenlik doğrulamasını tamamlayın.');
+      return;
+    }
 
     submittingRef.current = true;
     setLoading(true);
@@ -29,6 +55,7 @@ export default function SignupPage() {
         email,
         password,
         options: {
+          captchaToken: captchaToken ?? undefined,
           emailRedirectTo: new URL('/auth/callback', window.location.origin).toString(),
           data: {
             first_name: firstName.trim(),
@@ -39,6 +66,9 @@ export default function SignupPage() {
       });
 
       if (signUpError) {
+        if (isAuthRateLimitError(signUpError)) {
+          setCooldownSeconds(AUTH_RATE_LIMIT_COOLDOWN_SECONDS);
+        }
         setError(getSignupErrorMessage(signUpError));
         return;
       }
@@ -47,6 +77,8 @@ export default function SignupPage() {
     } catch {
       setError(getSignupErrorMessage(undefined));
     } finally {
+      setCaptchaToken(null);
+      turnstileRef.current?.reset();
       submittingRef.current = false;
       setLoading(false);
     }
@@ -134,15 +166,31 @@ export default function SignupPage() {
                 className="min-h-12 w-full rounded-lg border border-[#64090C]/30 bg-[#64090C]/20 px-4 py-3 text-base text-[#EFEACD] focus:border-[#F8D794] focus:outline-none"
               />
             </div>
+
+            <AuthTurnstile
+              action="signup"
+              turnstileRef={turnstileRef}
+              onTokenChange={setCaptchaToken}
+              onErrorChange={setCaptchaError}
+            />
             
             {error && <p role="alert" aria-live="polite" className="text-sm text-red-400">{error}</p>}
+            {captchaError && <p role="alert" aria-live="polite" className="text-sm text-red-400">{captchaError}</p>}
             
             <button
               type="submit"
-              disabled={loading}
+              disabled={
+                loading ||
+                cooldownSeconds > 0 ||
+                (AUTH_CAPTCHA_REQUIRED && !captchaToken)
+              }
               className="min-h-12 w-full rounded-lg bg-[#9C0512] px-4 py-3 text-base font-medium text-[#EFEACD] transition-colors hover:bg-[#9C0512]/80 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? 'Kayıt olunuyor...' : 'Kayıt Ol'}
+              {loading
+                ? 'Kayıt olunuyor...'
+                : cooldownSeconds > 0
+                  ? `Tekrar deneyin (${cooldownSeconds} sn)`
+                  : 'Kayıt Ol'}
             </button>
           </form>
         )}
