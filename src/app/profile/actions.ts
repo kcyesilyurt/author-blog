@@ -3,53 +3,86 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { requireText } from '@/lib/validation';
+import { optionalUsername, requireText } from '@/lib/validation';
+import type { ActionResult } from '@/lib/types';
 
-export async function updateProfile(formData: FormData) {
+type ProfileUpdateResult = ActionResult<{ username: string | null }>;
+
+export async function updateProfile(formData: FormData): Promise<ProfileUpdateResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error('Lütfen önce giriş yapın');
+    return { ok: false, error: 'Lütfen önce giriş yapın' };
   }
 
-  const firstName = requireText(formData.get('first_name'), {
-    fieldName: 'Ad',
-    min: 1,
-    max: 50,
-  });
-  const lastName = requireText(formData.get('last_name'), {
-    fieldName: 'Soyad',
-    min: 1,
-    max: 50,
-  });
+  let firstName: string;
+  let lastName: string;
+  let username: string | null | undefined = undefined;
+  try {
+    firstName = requireText(formData.get('first_name'), {
+      fieldName: 'Ad',
+      min: 1,
+      max: 50,
+    });
+    lastName = requireText(formData.get('last_name'), {
+      fieldName: 'Soyad',
+      min: 1,
+      max: 50,
+    });
+    if (formData.has('username')) {
+      username = optionalUsername(formData.get('username'));
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Profil bilgileri geçersiz',
+    };
+  }
 
   const displayName = `${firstName} ${lastName}`.trim() || user.email || 'Okur';
 
   const admin = createAdminClient();
   const { data: currentProfile, error: currentProfileError } = await admin
     .from('profiles')
-    .select('avatar_url, is_banned')
+    .select('username, avatar_url, is_banned')
     .eq('id', user.id)
     .maybeSingle();
 
   if (currentProfileError || !currentProfile) {
-    throw new Error('Profil doğrulanamadı');
+    return { ok: false, error: 'Profil doğrulanamadı' };
   }
   if (currentProfile.is_banned) {
-    throw new Error('Askıya alınan hesaplar profilini değiştiremez');
+    return { ok: false, error: 'Askıya alınan hesaplar profilini değiştiremez' };
   }
 
-  const { error: profileError } = await admin
+  const nextUsername = username === undefined ? currentProfile.username : username;
+
+  const { data: updatedProfile, error: profileError } = await admin
     .from('profiles')
     .update({
       first_name: firstName,
       last_name: lastName,
       display_name: displayName,
+      username: nextUsername,
     })
-    .eq('id', user.id);
+    .eq('id', user.id)
+    .eq('is_banned', false)
+    .select('username')
+    .maybeSingle();
 
-  if (profileError) throw new Error(profileError.message);
+  if (profileError?.code === '23505') {
+    return { ok: false, error: 'Bu kullanıcı adı zaten alınmış' };
+  }
+  if (profileError) {
+    return { ok: false, error: 'Profil güncellenemedi; lütfen tekrar deneyin' };
+  }
+  if (!updatedProfile) {
+    return {
+      ok: false,
+      error: 'Profil durumu değişti; sayfayı yenileyip tekrar deneyin',
+    };
+  }
 
   await supabase.auth.updateUser({
     data: {
@@ -63,4 +96,7 @@ export async function updateProfile(formData: FormData) {
   revalidatePath('/');
   revalidatePath('/profile');
   revalidatePath('/pano');
+  revalidatePath('/admin/comments');
+
+  return { ok: true, data: { username: updatedProfile.username } };
 }

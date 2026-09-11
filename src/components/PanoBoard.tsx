@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { timeAgo } from '@/lib/utils';
 import { appendUniqueById, prependUniqueById } from '@/lib/community-pagination';
+import { getCommunityDisplayName } from '@/lib/community-identity';
 import type { CommunityCursor, PanoMessage } from '@/lib/types';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import CommunityRoleTag from '@/components/CommunityRoleTag';
@@ -111,22 +112,6 @@ export default function PanoBoard() {
     }
   };
 
-  const getDisplayName = (message: PanoMessage) => {
-    if (message.profiles?.first_name) {
-      const lastInitial = message.profiles.last_name
-        ? ` ${message.profiles.last_name.trim().charAt(0)}.`
-        : '';
-      return `${message.profiles.first_name.trim()}${lastInitial}`;
-    }
-    if (message.profiles?.display_name) {
-      const parts = message.profiles.display_name.trim().split(/\s+/);
-      return parts.length > 1
-        ? `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`
-        : parts[0];
-    }
-    return message.guest_name?.trim() || (message.user_id ? 'Okur' : 'Anonim');
-  };
-
   return (
     <section className="font-sans">
       {errorMessage && (
@@ -204,7 +189,7 @@ export default function PanoBoard() {
                     <Image src={message.profiles.avatar_url} alt="" width={24} height={24} className="w-6 h-6 rounded-full object-cover border border-[#64090C]/40" />
                   )}
                   <span className="font-semibold text-[#EFEACD] inline-flex items-center gap-1">
-                    {getDisplayName(message)}
+                    {getCommunityDisplayName(message)}
                     {message.profiles?.is_admin && <VerifiedBadge />}
                   </span>
                   <CommunityRoleTag

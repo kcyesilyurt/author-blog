@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { timeAgo } from '@/lib/utils';
 import { appendUniqueById, prependUniqueById } from '@/lib/community-pagination';
+import { getCommunityDisplayName } from '@/lib/community-identity';
 import type { Comment, CommunityCursor } from '@/lib/types';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import CommunityRoleTag from '@/components/CommunityRoleTag';
@@ -156,22 +157,6 @@ export default function CommentSection({ chapterId }: { chapterId: string }) {
     }
   };
 
-  const getDisplayName = (comment: Comment) => {
-    if (comment.profiles?.first_name) {
-      const lastInitial = comment.profiles.last_name
-        ? ` ${comment.profiles.last_name.trim().charAt(0)}.`
-        : '';
-      return `${comment.profiles.first_name.trim()}${lastInitial}`;
-    }
-    if (comment.profiles?.display_name) {
-      const parts = comment.profiles.display_name.trim().split(/\s+/);
-      return parts.length > 1
-        ? `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`
-        : parts[0];
-    }
-    return comment.guest_name?.trim() || (comment.user_id ? 'Okur' : 'Anonim');
-  };
-
   return (
     <section className="mt-16 border-t border-[#64090C]/30 pt-8 font-sans">
       <h3 className="mb-6 text-xl font-semibold text-[#EFEACD]">
@@ -202,7 +187,7 @@ export default function CommentSection({ chapterId }: { chapterId: string }) {
                   <Image src={comment.profiles.avatar_url} alt="" width={24} height={24} className="h-6 w-6 rounded-full border border-[#64090C]/40 object-cover" />
                 )}
                 <span className="inline-flex items-center gap-1 font-medium text-[#EFEACD]">
-                  {getDisplayName(comment)}
+                  {getCommunityDisplayName(comment)}
                   {comment.profiles?.is_admin && <VerifiedBadge />}
                 </span>
                 <CommunityRoleTag

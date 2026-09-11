@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { formatPublicUsername } from '@/lib/community-identity';
 import { formatDate } from '@/lib/utils';
 import { deleteComment } from '../actions';
 
@@ -12,7 +13,7 @@ interface CommentItem {
   guest_name: string | null;
   content: string;
   created_at: string;
-  profiles?: { display_name: string } | null;
+  profiles?: { username: string | null; display_name: string | null } | null;
   chapters?: { title: string; books?: { title: string } | null } | null;
 }
 
@@ -25,7 +26,7 @@ export default function AdminCommentsPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles(display_name), chapters(title, books(title))')
+      .select('*, profiles(username, display_name), chapters(title, books(title))')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -78,7 +79,10 @@ export default function AdminCommentsPage() {
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-2 flex-wrap text-sm">
                   <span className="font-semibold text-white">
-                    {comment.profiles?.display_name || comment.guest_name || 'Anonim'}
+                    {formatPublicUsername(comment.profiles?.username)
+                      || comment.profiles?.display_name
+                      || comment.guest_name
+                      || 'Anonim'}
                   </span>
                   {!comment.user_id && (
                     <span className="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full border border-neutral-700">

@@ -14,11 +14,16 @@ import {
   AVATAR_IMAGE_MAX_BYTES,
   formatUploadLimit,
 } from '@/lib/upload-limits';
+import {
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+} from '@/lib/validation';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,12 +44,13 @@ export default function ProfilePage() {
       // Fetch profile from database
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
+        .select('id, first_name, last_name, username, avatar_url')
         .eq('id', data.user.id)
         .single();
 
       setFirstName(profile?.first_name || data.user.user_metadata?.first_name || '');
       setLastName(profile?.last_name || data.user.user_metadata?.last_name || '');
+      setUsername(profile?.username || '');
       setAvatarUrl(profile?.avatar_url || data.user.user_metadata?.avatar_url || '');
       setLoading(false);
     });
@@ -95,8 +101,15 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append('first_name', firstName);
       formData.append('last_name', lastName);
+      formData.append('username', username);
 
-      await updateProfile(formData);
+      const result = await updateProfile(formData);
+      if (!result.ok) {
+        setMessage({ type: 'error', text: result.error });
+        return;
+      }
+
+      setUsername(result.data.username || '');
       setMessage({ type: 'success', text: 'Profil bilgileriniz başarıyla güncellendi!' });
       setTimeout(() => {
         window.location.reload();
@@ -124,7 +137,7 @@ export default function ProfilePage() {
     <div className="max-w-xl mx-auto px-4 py-12">
       <div className="glass-card bg-[#64090C]/10 rounded-2xl p-6 sm:p-8 border border-[#64090C]/30 shadow-xl shadow-black/20">
         <h1 className="text-2xl font-bold text-[#EFEACD] mb-2 text-center">Profil Düzenle</h1>
-        <p className="text-[#EFEACD]/60 text-sm mb-8 text-center">İsminizi ve profil fotoğrafınızı özelleştirin</p>
+        <p className="text-[#EFEACD]/60 text-sm mb-8 text-center">Kullanıcı adınızı, isminizi ve profil fotoğrafınızı özelleştirin</p>
 
         {message && (
           <div
@@ -193,6 +206,36 @@ export default function ProfilePage() {
                 value={user?.email || ''}
                 className="min-h-12 w-full cursor-not-allowed rounded-lg border border-[#64090C]/30 bg-[#64090C]/10 px-4 py-3 text-base text-[#EFEACD]/40"
               />
+            </div>
+
+            <div>
+              <label htmlFor="profile-username" className="mb-2 block text-sm font-medium text-[#EFEACD]/60">
+                Kullanıcı Adı <span className="font-normal text-[#EFEACD]/40">(isteğe bağlı)</span>
+              </label>
+              <div className="flex min-h-12 w-full items-center rounded-lg border border-[#64090C]/30 bg-[#64090C]/20 focus-within:border-[#F8D794]">
+                <span aria-hidden="true" className="pl-4 text-base text-[#EFEACD]/50">@</span>
+                <input
+                  id="profile-username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  minLength={USERNAME_MIN_LENGTH}
+                  maxLength={USERNAME_MAX_LENGTH}
+                  pattern="[A-Za-z0-9](?:[A-Za-z0-9_]*[A-Za-z0-9])?"
+                  title="Yalnızca İngilizce harf, rakam ve alt çizgi kullanın; alt çizgiyle başlamayın veya bitirmeyin."
+                  aria-describedby="profile-username-help"
+                  placeholder="kitapkurdu"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="min-h-12 w-full bg-transparent px-2 pr-4 py-3 text-base text-[#EFEACD] placeholder:text-[#EFEACD]/30 focus:outline-none"
+                />
+              </div>
+              <p id="profile-username-help" className="mt-2 text-xs leading-relaxed text-[#EFEACD]/40">
+                @ işaretini yazmayın. {USERNAME_MIN_LENGTH}-{USERNAME_MAX_LENGTH} karakter; a-z, 0-9 ve _.
+                Küçük harfe dönüştürülür, herkese açıktır ve değişiklik eski yorumlarınıza da yansır.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

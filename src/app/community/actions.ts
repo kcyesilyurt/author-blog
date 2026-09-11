@@ -59,7 +59,7 @@ async function attachPublicProfiles<T extends CommunityRecord>(
   const admin = createAdminClient();
   const { data: profiles, error } = await admin
     .from('profiles')
-    .select('id, display_name, first_name, last_name, avatar_url, is_admin')
+    .select('id, username, display_name, first_name, last_name, avatar_url, is_admin')
     .in('id', userIds);
 
   if (error) throw new Error('Kullanıcı adları yüklenemedi');
@@ -68,6 +68,7 @@ async function attachPublicProfiles<T extends CommunityRecord>(
     (profiles ?? []).map((profile) => [
       profile.id,
       {
+        username: profile.username,
         display_name: profile.display_name,
         first_name: profile.first_name,
         last_name: profile.last_name,
@@ -96,7 +97,7 @@ async function getViewer() {
   const admin = createAdminClient();
   const { data: profile, error } = await admin
     .from('profiles')
-    .select('display_name, first_name, last_name, avatar_url, is_banned, is_admin')
+    .select('username, display_name, first_name, last_name, avatar_url, is_banned, is_admin')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -109,6 +110,7 @@ async function getViewer() {
     isBanned: profile.is_banned === true,
     isAdmin: profile.is_admin === true,
     publicProfile: {
+      username: profile.username,
       display_name: profile.display_name,
       first_name: profile.first_name,
       last_name: profile.last_name,

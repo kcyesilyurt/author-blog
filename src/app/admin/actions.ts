@@ -337,7 +337,7 @@ export async function listAdminProfiles() {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('profiles')
-    .select('id, display_name, first_name, last_name, avatar_url, is_banned, is_admin, created_at')
+    .select('id, username, display_name, first_name, last_name, avatar_url, is_banned, is_admin, created_at')
     .order('created_at', { ascending: false });
   if (error) throw new Error('Kullanıcılar yüklenemedi');
   return data;

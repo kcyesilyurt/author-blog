@@ -10,7 +10,7 @@ Site özellikleri, okur/yönetici kullanımı ve Supabase'in yalnızca web panel
 - Taslak, zamanlanmış, yayında ve arşivlenmiş yayın durumları
 - Markdown tabanlı okuma sayfaları
 - Kitap ve bölüm bazında 24 saatlik tekrarları tekilleştiren görüntülenme sayaçları
-- Üyelik, profil ve avatar yönetimi
+- Üyelik, profil, avatar ve isteğe bağlı benzersiz `@kullaniciadi` yönetimi
 - Üye veya misafir yorumu, tepki ve Pano mesajı
 - İmzalanmış doğrudan yükleme, görsel temizleme ve yayın öncesi moderasyon kullanan Fan Art galerisi
 - Yazar biyografisi, etkinlik takvimi ve spam korumalı iletişim formu
@@ -37,7 +37,7 @@ Site özellikleri, okur/yönetici kullanımı ve Supabase'in yalnızca web panel
 - `/admin/events`, `/admin/messages`: Etkinlik takvimi ve özel iletişim kutusu
 - `/admin/fan-art`: Fan art inceleme, onay/ret ve yayından kaldırma yönetimi
 
-Misafirler isim girerek içeriklere yorum yapabilir ve Panoya yazabilir. Kayıtlı kullanıcılar `Okur`, kayıtsız kullanıcılar `Misafir` etiketiyle görünür; yöneticilerde rol etiketi yerine yalnızca adın yanındaki mavi doğrulama rozeti gösterilir.
+Misafirler isim girerek içeriklere yorum yapabilir ve Panoya yazabilir. Kayıtlı kullanıcı bir kullanıcı adı seçerse yorum ve Pano mesajlarında öncelikle `@kullaniciadi`, seçmezse mevcut profil adı görünür. Kayıtlı kullanıcılar `Okur`, kayıtsız kullanıcılar `Misafir` etiketiyle görünür; yöneticilerde rol etiketi yerine yalnızca adın yanındaki mavi doğrulama rozeti gösterilir.
 
 ## Yerel kurulum
 
@@ -90,10 +90,11 @@ SQL Editor ve Supabase CLI birbirinin devamı değil, iki alternatif migration a
 3. [`20260802180000_add_events_and_contact_messages.sql`](./supabase/migrations/20260802180000_add_events_and_contact_messages.sql)
 4. [`20260820110356_add_publication_views.sql`](./supabase/migrations/20260820110356_add_publication_views.sql)
 5. [`20260820110402_add_fan_art.sql`](./supabase/migrations/20260820110402_add_fan_art.sql)
+6. [`20260910141005_add_optional_usernames.sql`](./supabase/migrations/20260910141005_add_optional_usernames.sql)
 
-Mevcut veritabanında temel şema zaten bulunduğu için `001`-`006` migration'larını tekrar çalıştırmayın. İlk üç güncel migration'ı daha önce başarıyla uyguladıysanız yalnızca 4 ve 5 numaralı yeni dosyaları sırayla çalıştırın. Tamamen boş yeni bir Supabase projesinde ise bütün migration'ları dosya adına göre sırayla uygulayın. SQL Editor ile çalıştırdıktan sonra aynı proje üzerinde doğrudan `db push` çalıştırmayın; manuel SQL, CLI migration geçmişine otomatik yazılmaz.
+Mevcut veritabanında temel şema zaten bulunduğu için `001`-`006` migration'larını tekrar çalıştırmayın. Daha önce başarıyla uyguladığınız güncel dosyaları da tekrarlamayın; sayaç ve Fan Art migration'ları tamamlandıysa bu sürüm için yalnızca 6 numaralı kullanıcı adı dosyasını çalıştırın. Tamamen boş yeni bir Supabase projesinde ise bütün migration'ları dosya adına göre sırayla uygulayın. SQL Editor ile çalıştırdıktan sonra aynı proje üzerinde doğrudan `db push` çalıştırmayın; manuel SQL, CLI migration geçmişine otomatik yazılmaz.
 
-**Production sırası bir yayın kapısıdır:** önce geri yüklenebilir veritabanı yedeğini doğrulayın; 4 ve 5 numaralı migration'ları çalıştırıp Cron, tablo ve bucket kontrollerini tamamlayın; Vercel Production ortamına `CRON_SECRET` ekleyin; ancak bunların hepsi başarılı olduktan sonra yeni uygulama kodunu dağıtın. Yeni kod `view_count` alanlarını ve Fan Art RPC'lerini doğrudan kullandığı için kodu eski şemadan önce yayımlamak kitap ve Fan Art rotalarını bozabilir. Bu iki migration geriye uyumlu olduğundan DB-first dağıtım mevcut sürümü bozmaz; kod rollback'i ise Supabase migration'larını veya verileri geri almaz.
+**Production sırası bir yayın kapısıdır:** önce geri yüklenebilir veritabanı yedeğini doğrulayın; eksik migration'ları, bu sürümde özellikle 6 numaralı kullanıcı adı migration'ını çalıştırıp kontrolleri tamamlayın; ancak sonra yeni uygulama kodunu dağıtın. Yeni kod `profiles.username` alanını doğrudan seçtiği için kodu migration'dan önce yayımlamak profil ve topluluk sorgularını bozabilir. Migration geriye uyumlu olduğundan DB-first dağıtım mevcut sürümü bozmaz; kod rollback'i ise Supabase migration'larını veya verileri geri almaz. Önceki Fan Art kurulumu yapılmamış bir ortamda `CRON_SECRET` ve 4-5 numaralı migration kontrolleri de hâlâ gereklidir.
 
 Pro, Team ve Enterprise projelerinde Dashboard > `Database > Backups` altında yakın tarihli restore point'i doğrulayın; migration'ın hemen öncesine dönme gereksinimi varsa PITR veya ayrıca mantıksal dump kullanın. Free planda indirilebilir Dashboard backup'ı bulunmadığından en azından Supabase CLI ile şema ve veriyi repo dışında yedekleyin. Veritabanı backup'ı Storage nesnelerinin byte'larını içermez; gerekliyse `covers`, `avatars` ve fan art bucket'larını ayrı koruyun. Ayrıntılı, plan-bazlı komutlar [KULLANIM.md](./KULLANIM.md) içindedir. [Supabase Database Backups](https://supabase.com/docs/guides/platform/backups)
 
@@ -108,7 +109,7 @@ npx --yes supabase@latest db push --dry-run
 npx --yes supabase@latest db push
 ```
 
-Repo daha önce `supabase init` ile hazırlanmışsa ilk komutu atlayın. `migration list` veya `--dry-run` daha önce uygulanmış `001`-`006` ya da 1-3 numaralı dosyaları yeniden çalıştırmak istiyorsa durun; `migration repair` komutunu şemayı doğrulamadan kullanmayın. Manuel SQL geçmişinden CLI'ye güvenli `migration list` / `db pull` / dikkatli `migration repair` geçişi, sayaç Cron'u, günlük Vercel cleanup fallback'i ve Fan Art Storage kontrolleri [KULLANIM.md](./KULLANIM.md) içinde açıklanmıştır. Production projesinde `db reset --linked` çalıştırmayın. [Supabase migration rehberi](https://supabase.com/docs/guides/deployment/database-migrations)
+Repo daha önce `supabase init` ile hazırlanmışsa ilk komutu atlayın. `migration list` veya `--dry-run` daha önce uygulanmış herhangi bir dosyayı yeniden çalıştırmak istiyorsa durun; `migration repair` komutunu şemayı doğrulamadan kullanmayın. Manuel SQL geçmişinden CLI'ye güvenli `migration list` / `db pull` / dikkatli `migration repair` geçişi, sayaç Cron'u, günlük Vercel cleanup fallback'i ve Fan Art Storage kontrolleri [KULLANIM.md](./KULLANIM.md) içinde açıklanmıştır. Production projesinde `db reset --linked` çalıştırmayın. [Supabase migration rehberi](https://supabase.com/docs/guides/deployment/database-migrations)
 
 [`vercel.json`](./vercel.json), Fan Art Storage outbox'ı için korumalı endpoint'i günde bir kez `03:17 UTC` zamanlar. Vercel `CRON_SECRET` değerini Bearer token olarak otomatik yollar. Günlük ifade Hobby planıyla uyumludur; Pro ve üzeri planda backlog/temizleme gecikmesi gerektiriyorsa rehberdeki saatlik alternatif kullanılabilir. [Vercel Cron yönetimi](https://vercel.com/docs/cron-jobs/manage-cron-jobs)
 
