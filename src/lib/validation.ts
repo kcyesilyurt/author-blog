@@ -4,6 +4,36 @@ export type PublicationStatus = (typeof PUBLICATION_STATUSES)[number];
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_]*[a-z0-9]$/;
+
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 24;
+
+export const RESERVED_USERNAMES = new Set([
+  'admin',
+  'administrator',
+  'anonymous',
+  'anonim',
+  'author',
+  'destek',
+  'editor',
+  'guest',
+  'misafir',
+  'mod',
+  'moderator',
+  'official',
+  'okur',
+  'owner',
+  'resmi',
+  'root',
+  'sistem',
+  'staff',
+  'support',
+  'system',
+  'yazar',
+  'yonetici',
+  'yonetim',
+]);
 
 export function requireUuid(value: unknown, fieldName = 'Kimlik'): string {
   if (typeof value !== 'string' || !UUID_PATTERN.test(value)) {
@@ -68,6 +98,30 @@ export function optionalText(value: unknown, max: number): string | null {
   if (!normalized) return null;
   if (normalized.length > max) throw new Error(`Metin en fazla ${max} karakter olabilir`);
   return normalized;
+}
+
+export function optionalUsername(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+
+  let username = value.trim();
+  if (!username) return null;
+
+  username = username.toLowerCase();
+  if (username.length < USERNAME_MIN_LENGTH || username.length > USERNAME_MAX_LENGTH) {
+    throw new Error(
+      `Kullanıcı adı ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} karakter arasında olmalıdır`
+    );
+  }
+  if (!USERNAME_PATTERN.test(username)) {
+    throw new Error(
+      'Kullanıcı adı yalnızca İngilizce harf, rakam ve alt çizgi içerebilir; alt çizgiyle başlayamaz veya bitemez'
+    );
+  }
+  if (RESERVED_USERNAMES.has(username)) {
+    throw new Error('Bu kullanıcı adı kullanılamaz; lütfen başka bir kullanıcı adı seçin');
+  }
+
+  return username;
 }
 
 export function parsePublicationInput(

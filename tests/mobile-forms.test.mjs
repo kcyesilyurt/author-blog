@@ -53,10 +53,18 @@ test('form labels are connected to their controls', async () => {
     assert.match(signup, new RegExp(`id="${id}"`));
   }
 
-  for (const id of ['profile-avatar', 'profile-email', 'profile-first-name', 'profile-last-name']) {
+  for (const id of [
+    'profile-avatar',
+    'profile-email',
+    'profile-username',
+    'profile-first-name',
+    'profile-last-name',
+  ]) {
     assert.match(profile, new RegExp(`htmlFor="${id}"`));
     assert.match(profile, new RegExp(`id="${id}"`));
   }
+
+  assert.match(profile, /autoComplete="username"/);
 });
 
 test('reaction controls meet the minimum mobile touch target', async () => {

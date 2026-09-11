@@ -13,7 +13,7 @@ Bu proje, bir yazarın kitaplarını ve blog yazılarını yayımlayabildiği; o
 - `Ben Kimim?`, etkinlik takvimi ve yazarla iletişim sayfaları bulunur.
 - Eski sitedeki dört video, ana sayfada gizlilik geliştirilmiş ve tembel yüklenen YouTube oynatıcılarıyla korunur.
 - Misafirler hesap açmadan isim yazarak yorum veya Pano mesajı bırakabilir.
-- Kayıtlı okurlar profil ve avatar oluşturabilir; yorumlarında profil adı görünür.
+- Kayıtlı okurlar profil, avatar ve isteğe bağlı benzersiz kullanıcı adı oluşturabilir; kullanıcı adı varsa yorum ve Pano mesajlarında `@kullaniciadi` görünür.
 - Yöneticiler eserleri, bölümleri, etkinlikleri, iletişim kutusunu, kullanıcıları ve topluluk içeriklerini yönetebilir.
 
 ## Kullanıcı türleri
@@ -21,7 +21,7 @@ Bu proje, bir yazarın kitaplarını ve blog yazılarını yayımlayabildiği; o
 | Kullanıcı | Yapabildikleri | Görünen etiket |
 | --- | --- | --- |
 | Misafir | Yayımlanmış eserleri okur, isim girerek yorum/Pano mesajı yazar ve tepki bırakır | `Misafir` |
-| Kayıtlı kullanıcı | Misafir yetkilerine ek olarak profil adı/avatar kullanır ve fan art gönderir | `Okur` |
+| Kayıtlı kullanıcı | Misafir yetkilerine ek olarak profil adı, isteğe bağlı `@kullaniciadi` ve avatar kullanır; fan art gönderir | `Okur` |
 | Yönetici/yazar | Eser ve bölüm yönetir; kullanıcı, yorum, Pano ve fan art moderasyonu yapar | Yalnızca mavi doğrulama rozeti |
 
 Askıya alınmış kullanıcılar siteyi okuyabilir ancak yorum, Pano mesajı veya fan art gönderemez.
@@ -40,7 +40,7 @@ Askıya alınmış kullanıcılar siteyi okuyabilir ancak yorum, Pano mesajı ve
 | `/iletisim` | Spam korumalı iletişim formu |
 | `/auth/signup` | Yeni okur hesabı oluşturma |
 | `/auth/login` | Hesaba giriş |
-| `/profile` | Ad, soyad, görünen ad ve avatar düzenleme |
+| `/profile` | İsteğe bağlı kullanıcı adı, ad, soyad, görünen ad ve avatar düzenleme |
 | `/admin` | Yazarın içerik kütüphanesi |
 | `/admin/comments` | Yorum moderasyonu |
 | `/admin/events` | Etkinlik oluşturma, yayımlama ve arşivleme |
@@ -55,13 +55,21 @@ Askıya alınmış kullanıcılar siteyi okuyabilir ancak yorum, Pano mesajı ve
 2. Kitaplarda bir bölümü açın; blog yazılarında içerik bağlantısını açın.
 3. Okuma sayfasında önceki/sonraki bölüm bağlantılarını kullanın; sayfanın altında tepki bırakın veya yorum yazın.
 4. Hesabınız yoksa yorum formuna bir isim girin. Mesajınız `Misafir` etiketiyle görünür.
-5. Hesabınız varsa yorum profil adınızla ve `Okur` etiketiyle görünür. Yönetici hesaplarında `Okur` etiketi yerine yalnızca mavi doğrulama rozeti gösterilir.
+5. Hesabınız varsa ve profilinizde kullanıcı adı seçtiyseniz yorum `@kullaniciadi` ile; seçmediyseniz mevcut profil adınızla görünür. Yönetici hesaplarında `Okur` etiketi yerine yalnızca mavi doğrulama rozeti gösterilir.
 6. Eserlerden bağımsız konuşmak için üst menüdeki `Pano` bağlantısını kullanın.
 7. Kendi çalışmanızı paylaşmak için giriş yapıp `/fan-art` formundan JPEG, PNG veya WebP dosyası gönderin. Durumu aynı sayfadaki `Gönderilerim` alanından izleyin.
 
 Kayıt olmak zorunlu değildir. Profil ve avatar kullanmak, yorumlarda sürekli aynı kimlikle görünmek için kayıt olunabilir.
 
 Yorum ve Pano mesajları en fazla 2.000 karakter ve 2 bağlantı içerebilir. Misafir adı 2-50 karakter arasında olmalıdır.
+
+### İsteğe bağlı kullanıcı adı
+
+Giriş yaptıktan sonra `/profile` sayfasından kullanıcı adı seçebilir veya alanı boşaltarak kaldırabilirsiniz. Değer veritabanında `@` olmadan küçük harfle tutulur; formdaki sabit `@` işareti alana yazılmaz ve arayüz bunu gösterirken ekler. Uzunluk 3-24 karakterdir. Yalnızca İngilizce `a-z` harfleri, `0-9` rakamları ve alt çizgi (`_`) kabul edilir; alt çizgi başta veya sonda olamaz. `Deniz_7` yazılması `deniz_7` olarak kaydedilir. Türkçe harfler sessizce dönüştürülmez: örneğin `çağla` yerine kullanıcı bilinçli olarak `cagla` seçmelidir.
+
+Kullanıcı adı kamusal ve benzersizdir. `admin`, `moderator`, `destek`, `yazar` gibi rol veya sistem çağrıştıran bazı adlar kimliğe bürünmeyi azaltmak için rezerve edilmiştir. Aynı adı iki kişi eşzamanlı isterse uygulamanın ön kontrolüne değil veritabanındaki unique index'e güvenilir; yalnızca bir işlem kazanır, diğeri anlaşılır bir “zaten alınmış” mesajı görür.
+
+Yorum ve Pano satırlarına adın metinsel kopyası yazılmaz; kayıtlı kullanıcının değişmeyen UUID'si tutulur ve güncel profil toplu olarak okunur. Bu nedenle kullanıcı adını değiştirmek veya kaldırmak eski yorum ve Pano mesajlarını da sayfa yenilendiğinde günceller. Bu tasarım backfill ve tekrar eden veri maliyetini önler. Eski yorumun o günkü adını sonsuza kadar korumak istenirse alternatif tasarım her iletiye bir ad snapshot'ı yazmaktır; bunun karşılığı daha fazla veri, ek yazma ve ad değişikliği tutarsızlığıdır.
 
 ## Yazar/yönetici olarak kullanım
 
@@ -181,6 +189,7 @@ Bu projenin mevcut veritabanında temel tablolar zaten bulunduğu için `001`-`0
 3. [`20260802180000_add_events_and_contact_messages.sql`](./supabase/migrations/20260802180000_add_events_and_contact_messages.sql)
 4. [`20260820110356_add_publication_views.sql`](./supabase/migrations/20260820110356_add_publication_views.sql)
 5. [`20260820110402_add_fan_art.sql`](./supabase/migrations/20260820110402_add_fan_art.sql)
+6. [`20260910141005_add_optional_usernames.sql`](./supabase/migrations/20260910141005_add_optional_usernames.sql)
 
 Her dosya için:
 
@@ -190,11 +199,11 @@ Her dosya için:
 4. `Run` düğmesine basın ve başarı mesajını bekleyin.
 5. Bir sorgu başarıyla tamamlanmadan sonraki dosyaya geçmeyin.
 
-İlk migration; yayın durumlarını, yayın tarihlerini, güvenlik kurallarını, profil erişimini ve atomik istek sınırını hazırlar. İkinci migration Storage sınırlarını uygulama koduyla aynı değere getirir. Üçüncü migration etkinlik ve iletişim tablolarını, dördüncü migration atomik yayın sayaçlarını, beşinci migration ise private/public Fan Art akışını ekler.
+İlk migration; yayın durumlarını, yayın tarihlerini, güvenlik kurallarını, profil erişimini ve atomik istek sınırını hazırlar. İkinci migration Storage sınırlarını uygulama koduyla aynı değere getirir. Üçüncü migration etkinlik ve iletişim tablolarını, dördüncü migration atomik yayın sayaçlarını, beşinci migration private/public Fan Art akışını, altıncı migration ise isteğe bağlı ve benzersiz kullanıcı adlarını ekler.
 
-Daha önce ilk üç dosyayı başarıyla çalıştırdıysanız onları tekrarlamayın; yalnızca dördüncü ve beşinci dosyayı bu sırayla çalıştırın.
+Daha önce başarıyla çalıştırdığınız dosyaları tekrarlamayın. İlk beş dosya canlı veritabanında tamamlandıysa bu sürüm için yalnızca altıncı dosyayı çalıştırın.
 
-Production'da bu sıra zorunlu bir yayın kapısıdır: önce yukarıdaki yedeği doğrulayın, 4 ve 5 numaralı migration'ları uygulayıp aşağıdaki kontrolleri bitirin, Vercel Production ortamına `CRON_SECRET` ekleyin ve ancak sonra yeni deployment'ı yayımlayın. Yeni kod eski şemada bulunmayan `view_count`, Fan Art tabloları ve RPC'leri kullandığı için ters sıra runtime hatası üretir. Migration'lar geriye uyumlu olduğundan DB-first dağıtım mevcut kodla uyumludur; yalnızca Vercel kod rollback'i yapmak Supabase migration'larını veya veriyi geri almaz.
+Production'da DB-first sırası zorunlu bir yayın kapısıdır: önce yukarıdaki yedeği doğrulayın, eksik migration'ları ve özellikle altıncı kullanıcı adı dosyasını uygulayıp aşağıdaki kontrolleri bitirin, ancak sonra yeni deployment'ı yayımlayın. Yeni kod eski şemada bulunmayan `profiles.username` alanını doğrudan okuduğu için ters sıra profil, yorum ve Pano sorgularında runtime hatası üretir. Migration geriye uyumlu olduğundan mevcut kodla birlikte güvenle bekleyebilir; yalnızca Vercel kod rollback'i yapmak Supabase migration'ını veya veriyi geri almaz. Fan Art kurulumu henüz tamamlanmadıysa 4-5 numaralı dosyalar ve Vercel Production `CRON_SECRET` kontrolü de ayrıca gereklidir.
 
 Migration'lardan sonra Dashboard'da şunları kontrol edin:
 
@@ -202,15 +211,41 @@ Migration'lardan sonra Dashboard'da şunları kontrol edin:
 - `Table Editor`: `community_rate_limits` tablosu bulunmalı.
 - `Table Editor`: `events` ve `contact_messages` tabloları bulunmalı; `contact_messages` için tarayıcı rollerine policy verilmemiş olmalı.
 - `Table Editor`: `books` ve `chapters` içinde `view_count`; ayrıca `publication_view_dedup`, `fan_art_submissions` ve `fan_art_storage_cleanup_jobs` tabloları bulunmalı.
+- `Table Editor`: `profiles` içinde boş bırakılabilen `username` alanı bulunmalı.
 - `Storage`: `covers` public ve 10 MB; `avatars` public ve 5 MB olmalı.
 - `Storage`: `fan-art-staging` private, `fan-art` public ve ikisi de 6 MB olmalı; public bucket yalnızca WebP kabul etmelidir.
 - `Storage` genel ayarları: projenin global dosya sınırı en az 10 MB olmalı. Migration bucket sınırlarını değiştirir, global proje sınırını değiştirmez.
 
 Tamamen boş, yeni bir Supabase projesi kuruluyorsa bunun yerine `supabase/migrations` klasöründeki bütün SQL dosyaları dosya adına göre sırayla çalıştırılmalıdır.
 
+Altıncı migration'ın yapısını SQL Editor'da salt-okunur olarak doğrulamak için şu sorguları çalıştırabilirsiniz:
+
+```sql
+select column_name, data_type, is_nullable
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'profiles'
+  and column_name = 'username';
+
+select indexname, indexdef
+from pg_catalog.pg_indexes
+where schemaname = 'public'
+  and tablename = 'profiles'
+  and indexname = 'profiles_username_lower_uidx';
+
+select grantee, privilege_type
+from information_schema.column_privileges
+where table_schema = 'public'
+  and table_name = 'profiles'
+  and column_name = 'username'
+order by grantee;
+```
+
+İlk sorgu `text` ve `YES`, ikinci sorgu `UNIQUE ... lower(username) ... WHERE username IS NOT NULL`, üçüncü sorgu ise `anon` ve `authenticated` için `SELECT` göstermelidir. Bu yalnız yeni kamusal kolonu açar; `profiles` tablosuna genel `SELECT` veya kullanıcıya doğrudan `UPDATE` yetkisi verilmez. Profil güncellemesi oturumu sunucuda doğrulayan action üzerinden yapılır.
+
 ### SQL Editor ve CLI migration geçmişini ayırma
 
-SQL Editor ile çalıştırılan dosyalar `supabase_migrations.schema_migrations` geçmişine otomatik kaydolmaz. Bu nedenle mevcut proje için SQL Editor akışı, CLI `db push` komutunun hazırlık adımı değil alternatifidir. Manuel SQL'den hemen sonra `db push` çalıştırmak, veritabanında zaten bulunan `001`-`006` veya ilk üç güncel migration'ı yeniden uygulamaya çalışabilir.
+SQL Editor ile çalıştırılan dosyalar `supabase_migrations.schema_migrations` geçmişine otomatik kaydolmaz. Bu nedenle mevcut proje için SQL Editor akışı, CLI `db push` komutunun hazırlık adımı değil alternatifidir. Manuel SQL'den hemen sonra `db push` çalıştırmak, veritabanında zaten bulunan `001`-`006` veya daha önce elle uygulanan güncel migration'ları yeniden çalıştırmaya kalkabilir.
 
 Baştan beri CLI geçmişiyle yönetilen bir projede güvenli akış şöyledir:
 
@@ -220,7 +255,7 @@ npx --yes supabase@latest db push --dry-run
 npx --yes supabase@latest db push
 ```
 
-`migration list` ve `--dry-run` çıktısı yalnızca gerçekten beklenen yeni dosyaları göstermelidir. Bu proje için 4 ve 5 dışındaki daha önce uygulanmış dosyalar listeleniyorsa son komutu çalıştırmayın.
+`migration list` ve `--dry-run` çıktısı yalnızca gerçekten beklenen yeni dosyaları göstermelidir. Daha önce SQL Editor ile uyguladığınız herhangi bir dosya yeniden çalıştırılacak görünüyorsa son komutu çalıştırmayın.
 
 Mevcut manuel projeyi ileride CLI yönetimine geçirmek için:
 
@@ -278,7 +313,7 @@ Storage nesnesi Postgres transaction'ıyla aynı anda silinemez. Galeri görseli
 
 ### Ölçek kontrolü ve alternatifler
 
-Mevcut model küçük ve orta trafik için dengeli bir başlangıçtır: görsel byte'ları SQL yerine Storage'da, yalnız metadata Postgres'te tutulur; galeri, moderasyon ve kullanıcı geçmişi sorguları keyset pagination ile uyumlu bileşik indekslere dayanır; görüntülenme toplamları aggregate kolonlarda kalırken geçici tekilleştirme kayıtları batch halinde temizlenir. Ölçek kararını toplam satır sayısından çok ölçülen darboğaza göre verin.
+Mevcut model küçük ve orta trafik için dengeli bir başlangıçtır: görsel byte'ları SQL yerine Storage'da, yalnız metadata Postgres'te tutulur; galeri, moderasyon ve kullanıcı geçmişi sorguları keyset pagination ile uyumlu bileşik indekslere dayanır; görüntülenme toplamları aggregate kolonlarda kalırken geçici tekilleştirme kayıtları batch halinde temizlenir. Kullanıcı adı yalnız `profiles` içinde nullable kısa bir metindir ve partial index'e yalnız kullanıcı adı seçen hesaplar girer; yorum sayısı arttıkça username index'i büyümez. Topluluk sorgusu profilleri ileti başına ayrı ayrı değil sayfadaki benzersiz kullanıcı UUID'leriyle tek batch'te getirir. Ölçek kararını toplam satır sayısından çok ölçülen darboğaza göre verin.
 
 Aynı eser satırında çok yüksek eşzamanlı görüntülenme write trafiği oluşursa sayaç olaylarını kuyruğa alıp toplu artırmak veya gerçek-zamanlı kesin sayı gerekmiyorsa ayrı bir analytics sistemi kullanmak satır hotspot'unu azaltır; karşılığında gösterilen sayı gecikir ve yeni operasyonel bileşen gelir. Fan art hacmi günlük worker kapasitesini aşarsa önce izlenen backlog'a göre cron sıklığı/batch'i artırın; kalıcı yüksek hacimde kuyruk tüketen ayrı worker ya da yönetilen görsel dönüştürme/moderasyon/CDN servisi tercih edilebilir. Bunlar daha yüksek kapasite sağlar ama maliyet, sağlayıcı bağımlılığı ve hata ayıklama yüzeyi ekler.
 
@@ -559,6 +594,7 @@ Ardından tarayıcıda [http://localhost:3000](http://localhost:3000) adresini a
 - Ana sayfada eserler görünmüyorsa eser ve bölümün yayın durumunu/tarihini kontrol edin.
 - `column ... status does not exist` hatası varsa güvenlik/yayın migration'ı çalıştırılmamıştır.
 - Yorum veya Pano gönderilemiyorsa `community_rate_limits` tablosu ve RPC fonksiyonu için ilk migration'ı çalıştırın.
+- Profilde kullanıcı adı kaydedilemiyor veya yorumlar yüklenmiyorsa altıncı migration'ın çalıştığını, `profiles.username` alanını ve `anon`/`authenticated` kolon `SELECT` izinlerini kontrol edin.
 - Etkinlikler görünmüyor veya iletişim formu çalışmıyorsa üçüncü migration'ın tamamını çalıştırıp `events` ile `contact_messages` tablolarını kontrol edin.
 - Kapak/avatar yüklenemiyorsa Storage'da `covers` ve `avatars` bucket'larını ve boyut sınırlarını kontrol edin.
 - Fan art yüklenemiyorsa beşinci migration'ın tamamlandığını, `fan-art-staging`/`fan-art` bucket'larını ve Storage global limitinin en az 10 MB olduğunu kontrol edin.

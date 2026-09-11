@@ -116,6 +116,9 @@ export default function AdminUsersPage() {
                     )}
                   </div>
                 </div>
+                {u.username && (
+                  <p className="text-sm font-medium text-[#F8D794]">@{u.username}</p>
+                )}
                 <p className="text-xs text-neutral-500">Kayıt Tarihi: {formatDate(u.created_at)}</p>
               </div>
 

@@ -1,6 +1,7 @@
 export interface Profile {
   id: string;
   display_name: string;
+  username: string | null;
   first_name?: string;
   last_name?: string;
   avatar_url: string | null;
@@ -50,6 +51,7 @@ export type PublicChapter = Pick<
 export type PublicChapterRouteItem = Pick<Chapter, 'book_id' | 'slug'>;
 
 export interface CommunityProfile {
+  username: string | null;
   display_name: string | null;
   first_name: string | null;
   last_name: string | null;
