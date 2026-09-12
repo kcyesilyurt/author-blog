@@ -100,7 +100,7 @@ export default async function HomePage() {
             {SITE_NAME}
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-[#EFEACD]/70 max-w-lg mx-auto font-serif italic fade-in-up-delay-1">
-            {SITE_DESCRIPTION}
+            Sayfaların ardında sizi bekleyen bir dünya var. Keşfetmeye hazır mısınız?
           </p>
           <div className="mt-8 flex gap-4 justify-center fade-in-up-delay-2">
             <a href="#eserler" className="bg-[#9C0512] text-[#F8D794] px-8 py-3 rounded-lg font-medium hover:bg-[#7a040e] transition-all hover:shadow-lg hover:shadow-[#9C0512]/20">
